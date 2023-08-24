@@ -50,7 +50,7 @@ def main(speckle_project_data: str, function_inputs: str, speckle_token: str):
     base = receive(commit.referencedObject, server_transport, memory_transport)
 
     random_beam = random.choice(
-        [b for b in flatten_base(base) if b.speckle_type == "IFCBEAM"]
+        [b for b in flatten_base(base) if "vectorlayer" in b.speckle_type.lower()]
     )
 
     make_comment(
