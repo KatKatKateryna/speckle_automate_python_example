@@ -49,9 +49,9 @@ def main(speckle_project_data: str, function_inputs: str, speckle_token: str):
     server_transport = ServerTransport(project_data.project_id, client)
     base = receive(commit.referencedObject, server_transport, memory_transport)
 
-    random_beam = random.choice(
-        [b for b in flatten_base(base) if "vectorlayer" in b.speckle_type.lower()]
-    )
+    objects = [b for b in flatten_base(base)]
+    print(objects)
+    random_beam = random.choice( objects )
 
     make_comment(
         client,
