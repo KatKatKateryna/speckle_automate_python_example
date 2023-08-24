@@ -34,7 +34,9 @@ class FunctionInputs(BaseModel):
 
 
 def main(speckle_project_data: str, function_inputs: str, speckle_token: str):
+    # schema comes from automate 
     project_data = SpeckleProjectData.model_validate_json(speckle_project_data)
+    # defined by function author (above). Optional 
     inputs = FunctionInputs.model_validate_json(function_inputs)
 
     client = SpeckleClient(project_data.speckle_server_url, use_ssl=False)
