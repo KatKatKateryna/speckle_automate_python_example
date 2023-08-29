@@ -51,6 +51,7 @@ version_id = "5d720c0998" #project_data.version_id
 
 #inputs.model_id = #project_data.model_id
 RADIUS = 100 #float(inputs.radius) 
+RESULT_BRANCH = "automate"
 
 account = get_local_accounts()[2]
 client = SpeckleClient(server_url)
@@ -297,11 +298,19 @@ try:
 
     bases = [Base(units = "m", displayValue = [b]) for b in blds]
     commitObj = Collection(elements = bases, units = "m", name = "Context", collectionType = "Layer")
+    
+    # create branch if needed 
+    existing_branch = client.branch.get(project_id, RESULT_BRANCH, 1)  
+    if existing_branch is None: 
+        br_id = client.branch.create(stream_id = project_id, name = RESULT_BRANCH, description = "") 
+
+
     objId = send(commitObj, transports=[server_transport]) 
+
     commit_id = client.commit.create(
                 stream_id=project_id,
                 object_id=objId,
-                branch_name="main",
+                branch_name=RESULT_BRANCH,
                 message="Sent objects from Automate",
                 source_application="Python",
             )
