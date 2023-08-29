@@ -10,6 +10,7 @@ import random
 from flatten import flatten_base
 from make_comment import make_comment
 
+import numpy
 
 class SpeckleProjectData(BaseModel):
     """Values of the project / model that triggered the run of this function."""
@@ -50,7 +51,13 @@ def main(speckle_project_data: str, function_inputs: str, speckle_token: str):
     base = receive(commit.referencedObject, server_transport, memory_transport)
 
     objects = [b for b in flatten_base(base)]
-    print(objects)
+    try:
+        projInfo = [o for o in objects if o.speckle_type.endswith("Revit.ProjectInfo")][0] 
+        angle_rad = projInfo["locations"][0]["trueNorth"]
+        lon = projInfo["longitude"]
+        lat = projInfo["latitude"]
+    except: pass
+    
     random_beam = random.choice( objects )
 
     make_comment(
