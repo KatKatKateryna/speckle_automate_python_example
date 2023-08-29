@@ -455,8 +455,8 @@ def getRoads(lat: float, lon: float):
         coords = [] # replace node IDs with actual coords for each Way
         
         value = 2
-        if tags[i][keyword] in ["primary"]: value = 10
-        elif tags[i][keyword] in ["secondary"]: value = 6
+        if tags[i][keyword] in ["primary"]: value = 12
+        elif tags[i][keyword] in ["secondary"]: value = 7
         try:
             if tags[i]['area'] == 'yes': 
                 value = None 
