@@ -36,28 +36,42 @@ first, download whl file here https://www.lfd.uci.edu/~gohlke/pythonlibs/#gdal ,
 https://github.com/geopandas/geopandas 
 
 '''
+from copy import copy
 from typing import List
 from specklepy.transports.server import ServerTransport
 from specklepy.api.credentials import get_local_accounts
 from specklepy.api.operations import receive, send
 from specklepy.api.client import SpeckleClient
 from specklepy.objects import Base
+from specklepy.objects.geometry import Polyline, Point, Mesh  
 from specklepy.objects.other import Collection
+from specklepy.api.models import Branch 
+
 from flatten import flatten_base
 
 server_url = "https://speckle.xyz/" # project_data.speckle_server_url
 project_id = "17b0b76d13" #project_data.project_id
+model_id = "revit tests"
 version_id = "5d720c0998" #project_data.version_id
 
-#inputs.model_id = #project_data.model_id
-RADIUS = 500 #float(inputs.radius) 
+#model_id = #project_data.model_id
+RADIUS = 300 #float(project_data.radius) 
 RESULT_BRANCH = "automate"
+COLOR_ROAD = (255<<24) + (50<<16) + (50<<8) + 50 # argb
+COLOR_BLD = (255<<24) + (200<<16) + (200<<8) + 200 # argb
 
 account = get_local_accounts()[2]
 client = SpeckleClient(server_url)
 client.authenticate_with_token(account.token)
-commit = client.commit.get(project_id, version_id)
+branch: Branch = client.branch.get(project_id, model_id, 1)
+
+commit = branch.commits.items[0] 
 server_transport = ServerTransport(project_id, client)
+
+# to delete:
+commit = client.commit.get(project_id, version_id)
+#################################
+
 base = receive(commit.referencedObject, server_transport)
 
 objects = [b for b in flatten_base(base)]
@@ -98,7 +112,7 @@ def cleanString(text: str) -> str:
 def fix_orientation(polyBorder, reversed_vert_indices, positive = True, coef = 1): 
     
     sum_orientation = 0 
-    for k, ptt in enumerate(polyBorder): #pointList:
+    for k, ptt in enumerate(polyBorder): #pointTupleList:
         index = k+1
         if k == len(polyBorder)-1: index = 0
         pt = polyBorder[k*coef]
@@ -107,14 +121,9 @@ def fix_orientation(polyBorder, reversed_vert_indices, positive = True, coef = 1
         sum_orientation += (pt2[0] - pt[0]) * (pt2[1] + pt[1]) 
     
     inverse = False
-    if positive is True: 
-        if sum_orientation < 0:
-            reversed_vert_indices.reverse()
-            inverse = True
-    else: 
-        if sum_orientation > 0:
-            reversed_vert_indices.reverse()
-            inverse = True
+    if sum_orientation < 0:
+        reversed_vert_indices.reverse()
+        inverse = True
     return reversed_vert_indices, inverse
 
 def extrudeBuildings(coords: List[dict], height: float):
@@ -123,9 +132,13 @@ def extrudeBuildings(coords: List[dict], height: float):
     faces = []
     colors = []
     
+    color = COLOR_BLD #(255<<24) + (100<<16) + (100<<8) + 100 # argb
+    
     # bottom
     reversed_vert_indices = list(range(int(len(vertices)/3), int(len(vertices)/3) + len(coords)))
-    for c in coords: vertices.extend([c['x'], c['y'], 0])
+    for c in coords: 
+        vertices.extend([c['x'], c['y'], 0])
+        colors.append(color)
 
     polyBorder = [ (vertices[ind*3], vertices[ind*3+1], vertices[ind*3+2] ) for ind in reversed_vert_indices]
     reversed_vert_indices, inverse = fix_orientation(polyBorder, reversed_vert_indices)
@@ -133,7 +146,9 @@ def extrudeBuildings(coords: List[dict], height: float):
 
     # top
     reversed_vert_indices = list(range(int(len(vertices)/3), int(len(vertices)/3) + len(coords)))
-    for c in coords: vertices.extend([c['x'], c['y'], height])
+    for c in coords: 
+        vertices.extend([c['x'], c['y'], height])
+        colors.append(color)
 
     polyBorder = [ (vertices[ind*3], vertices[ind*3+1], vertices[ind*3+2] ) for ind in reversed_vert_indices]
     reversed_vert_indices, inverse = fix_orientation(polyBorder, reversed_vert_indices)
@@ -144,13 +159,14 @@ def extrudeBuildings(coords: List[dict], height: float):
     for i,c in enumerate(coords):
         if i != len(coords)-1: nextC = coords[i+1] #i+1
         else: nextC = coords[0] #0
-        #faces.extend( [4, i, nextC, nextC + len(coords), i+len(coords) ] )
+
         reversed_vert_indices = list(range(int(len(vertices)/3), int(len(vertices)/3) + 4))
         faces.extend([4] + reversed_vert_indices)
         if inverse is False:
             vertices.extend([c['x'],c['y'],0,c['x'],c['y'],height, nextC['x'],nextC['y'],height, nextC['x'],nextC['y'],0])
         else:
             vertices.extend([c['x'],c['y'],0, nextC['x'],nextC['y'],0, nextC['x'],nextC['y'],height,c['x'],c['y'],height])
+        colors.extend([color, color, color, color])
 
     obj = Mesh.create(faces = faces, vertices = vertices)
     obj.units = "m"
@@ -294,6 +310,45 @@ def joinRoads(coords: List[dict], closed: bool,  height: float):
     poly.units = "m"
     return poly
 
+def fillList(vals: list, lsts: list) -> List[list]:
+    if len(vals)>1: 
+        lsts.append([])
+    else: return
+
+    for i, v in enumerate(vals):
+        if v not in lsts[len(lsts)-1]: lsts[len(lsts)-1].append(v)
+        else: 
+            if len(lsts[len(lsts)-1])<=1: lsts.pop(len(lsts)-1)
+            vals = copy(vals[i-1:])
+            fillList(vals, lsts)
+    return lsts 
+    
+def splitWaysByIntersection(ways: list, tags: list):
+    splitWays = []
+    splitTags = []
+
+    for i, w in enumerate(ways):
+        ids = w['nodes']
+
+        try:
+            if tags[i]['area'] == 'yes': 
+                splitWays.append(w) 
+                splitTags.append(tags[i])
+                continue
+        except: pass 
+
+        if len(list(set(ids))) < len(ids): # if there are repetitions
+            wList = fillList(ids, [])
+            for item in wList:
+                x = copy(w)
+                x['nodes'] = item
+                splitWays.append(x) 
+                splitTags.append(tags[i])
+        else:
+            splitWays.append(w) 
+            splitTags.append(tags[i])
+
+    return splitWays, splitTags
 
 def getRoads(lat: float, lon: float):
     # https://towardsdatascience.com/loading-data-from-openstreetmap-with-python-and-the-overpass-api-513882a27fd0 
@@ -342,7 +397,11 @@ def getRoads(lat: float, lon: float):
         # relations 
         elif feature['type'] == 'relation':
             outer_ways = []
-            outer_ways_tags = { f'{keyword}': feature['tags'][keyword] }
+            try:
+                outer_ways_tags = { f'{keyword}': feature['tags'][keyword], 'area': feature['tags']['area'] }
+            except:
+                outer_ways_tags = { f'{keyword}': feature['tags'][keyword] }
+                
             
             for n, x in enumerate(feature['members']):
                 # if several Outer ways, combine them
@@ -377,7 +436,8 @@ def getRoads(lat: float, lon: float):
         
             # move inside the loop to separate the sections
             ways.append( { 'nodes': full_node_list } ) 
-            tags.append( { f'{keyword}': rel_outer_ways_tags[n][keyword] } )
+            try: tags.append( { f'{keyword}': rel_outer_ways_tags[n][keyword], 'area': rel_outer_ways_tags[n]['area'] } )
+            except: tags.append( { f'{keyword}': rel_outer_ways_tags[n][keyword] } )
             # empty the list after each loop to start new part 
             full_node_list = []
         
@@ -386,23 +446,23 @@ def getRoads(lat: float, lon: float):
 
     # get coords of Ways
     objectGroup = []
+    meshGroup = []
+
+    ways, tags = splitWaysByIntersection(ways, tags)
+
     for i, x in enumerate(ways): # go through each Way: 2384
         ids = ways[i]['nodes']
         coords = [] # replace node IDs with actual coords for each Way
-        r'''
-        height = 3
-        tags[i][keyword]: height = 9
-        try: height = float( cleanString(tags[i]['levels'].split( ',' )[0].split( ';' )[0] )) * 3
-        except:
-            try: height = float( cleanString(tags[i]['height'].split( ',' )[0].split( ';' )[0]) )
-            except: 
-                try: 
-                    if tags[i]['layer'] < 0: height = -1 * height
-                except: pass
-        if height > 150: 
-            print(height)
-            #height = 10 
-        '''
+        
+        value = 2
+        if tags[i][keyword] in ["primary"]: value = 10
+        elif tags[i][keyword] in ["secondary"]: value = 6
+        try:
+            if tags[i]['area'] == 'yes': 
+                value = None 
+                continue
+        except: pass 
+
         closed = False
         for k, y in enumerate(ids): # go through each node of the Way
             if k==len(ids)-1 and y == ids[0]: 
@@ -416,10 +476,42 @@ def getRoads(lat: float, lon: float):
 
         obj = joinRoads( coords, closed, 0 )
         objectGroup.append( obj )
+
+        objMesh = roadBuffer(obj, value)
+        # filter out ignored "areas"
+        if objMesh is not None: meshGroup.append( objMesh )
+
         coords = None
         height = None   
-    return objectGroup
+    return objectGroup, meshGroup
 
+def roadBuffer(poly: Polyline, value: float):
+    import json
+    from shapely import offset_curve, buffer, to_geojson, LineString, Point, Polygon, BufferCapStyle, BufferJoinStyle
+    if value is None: return
+    line = LineString([(p.x, p.y) for p in poly.as_points()])
+    area = to_geojson(buffer(line, value, cap_style="square")) # POLYGON to geojson 
+    area = json.loads(area)
+    vertices = []
+    colors = []
+    vetricesTuples = []
+
+    color = COLOR_ROAD #(255<<24) + (150<<16) + (150<<8) + 150 # argb
+
+    for i,c in enumerate(area["coordinates"][0]):
+        if i != len(area["coordinates"][0])-1:
+            vertices.extend(c+[0])
+            vetricesTuples.append(c)
+            colors.append(color)
+    
+    face_list = list(range(len(vetricesTuples)))
+    face_list, inverse = fix_orientation(vetricesTuples, face_list)
+    face_list.reverse()
+
+    mesh = Mesh.create(vertices=vertices, colors = colors, faces = [len(vetricesTuples)] + face_list )
+    mesh.units = "m"
+
+    return Base(units = "m", displayValue = [mesh], width = 2*value)
 
 try:
     import numpy as np 
@@ -444,10 +536,11 @@ try:
     bldObj = Collection(elements = bases, units = "m", name = "Context", collectionType = "BuildingsLayer")
     commitObj.elements.append(bldObj)
     
-    roads = getRoads(lat, lon)
-    bases = roads
-    roadObj = Collection(elements = bases, units = "m", name = "Context", collectionType = "RoadsLayer")
+    roads, meshes = getRoads(lat, lon)
+    roadObj = Collection(elements = roads, units = "m", name = "Context", collectionType = "RoadsLayer")
     commitObj.elements.append(roadObj)
+    roadMeshObj = Collection(elements = meshes, units = "m", name = "Context", collectionType = "RoadMeshesLayer")
+    commitObj.elements.append(roadMeshObj)
     
     # create branch if needed 
     existing_branch = client.branch.get(project_id, RESULT_BRANCH, 1)  
