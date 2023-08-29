@@ -1,11 +1,12 @@
 
 from copy import copy
+import math
 from typing import List
+from utils.utils_network import colorSegments
 from utils.utils_other import COLOR_BLD, COLOR_ROAD, cleanString, fillList
 from utils.utils_pyproj import createCRS, reprojectToCrs
 from specklepy.objects import Base
-from specklepy.objects.geometry import Polyline, Point, Mesh  
-
+from specklepy.objects.geometry import Polyline, Point, Mesh, Line 
 
 def getBuildings(lat: float, lon: float, r: float):
     # https://towardsdatascience.com/loading-data-from-openstreetmap-with-python-and-the-overpass-api-513882a27fd0 
@@ -115,9 +116,9 @@ def getBuildings(lat: float, lon: float, r: float):
                 try: 
                     if float( cleanString(tags[i]['layer'].split( ',' )[0].split( ';' )[0]) ) < 0: height = -1 * height
                 except: pass
-        if height > 150: 
-            print(height)
-            #height = 10 
+        #if height > 150: 
+        #    print(height)
+        #    #height = 10 
 
         for k, y in enumerate(ids): # go through each node of the Way
             if k==len(ids)-1: continue # ignore last 
@@ -294,6 +295,7 @@ def getRoads(lat: float, lon: float, r: float):
     # get coords of Ways
     objectGroup = []
     meshGroup = []
+    analysisGroup = []
 
     ways, tags = splitWaysByIntersection(ways, tags)
 
@@ -327,10 +329,58 @@ def getRoads(lat: float, lon: float, r: float):
         objMesh = roadBuffer(obj, value)
         # filter out ignored "areas"
         if objMesh is not None: meshGroup.append( objMesh )
-
+        
         coords = None
         height = None   
-    return objectGroup, meshGroup
+    
+    
+    objAnalysis, maxCount = colorSegments(lat, lon, r)
+    for ob in objAnalysis:
+        mesh = lineColorBuffer(ob, maxCount, 2)
+        analysisGroup.append(mesh)
+
+    return objectGroup, meshGroup, analysisGroup
+
+def lineColorBuffer(poly: Line, maxCount: float, value: float):
+    import json
+    import matplotlib as mpl
+    import matplotlib.pyplot as plt
+    from shapely import offset_curve, buffer, to_geojson, LineString, Point, Polygon, BufferCapStyle, BufferJoinStyle
+    if value is None: return
+    line = LineString([(p.x, p.y) for p in [poly.start, poly.end] ])
+    area = to_geojson(buffer(line, value, cap_style="square")) # POLYGON to geojson 
+    area = json.loads(area)
+    vertices = []
+    colors = []
+    vetricesTuples = []
+
+    fraction = math.pow( poly.count / maxCount, 0.4)
+    #cmap_names = sorted(m for m in plt.colormaps if not m.endswith("_r"))
+    #cmap = mpl.cm.RdYlGn.reversed()
+    cmap = mpl.colormaps['jet']
+    map = cmap(fraction)
+    r = int(map[0]*255) # int(poly.count / maxCount)*255
+    g = int(map[1]*255) # int(poly.count / maxCount)*255
+    #if poly.count>=maxCount/2: g = 255 - int(poly.count / maxCount)*255
+    b = int(map[2]*255) # 255 - int( poly.count / maxCount)*255
+
+    color = (255<<24) + (r<<16) + (g<<8) + b # argb
+
+    for i,c in enumerate(area["coordinates"][0]):
+        if i != len(area["coordinates"][0])-1:
+            vertices.extend(c+[0])
+            vetricesTuples.append(c)
+            colors.append(color)
+    
+    face_list = list(range(len(vetricesTuples)))
+    face_list, inverse = fix_orientation(vetricesTuples, face_list)
+    face_list.reverse()
+
+    mesh = Mesh.create(vertices=vertices, colors = colors, faces = [len(vetricesTuples)] + face_list )
+    mesh.units = "m"
+    mesh.count = poly.count / maxCount
+
+    return Base(units = "m", displayValue = [mesh], width = 2*value)
 
 def roadBuffer(poly: Polyline, value: float):
     import json

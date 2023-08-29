@@ -15,3 +15,13 @@ def reprojectToCrs(lat: float, lon: float, crs_from, crs_to, direction = "FORWAR
     pt = transformer.transform(lon, lat, direction=direction)
 
     return pt[0], pt[1] 
+
+def getBbox(lat, lon, r):
+    
+    projectedCrs = createCRS(lat, lon)
+    lonPlus1, latPlus1 = reprojectToCrs(1, 1, projectedCrs, "EPSG:4326")
+    scaleX = lonPlus1 - lon
+    scaleY = latPlus1 - lat
+
+    bbox = (lat-r*scaleY, lon-r*scaleX, lat+r*scaleY, lon+r*scaleX)
+    return bbox 

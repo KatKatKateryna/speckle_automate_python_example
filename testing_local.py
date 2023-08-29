@@ -47,6 +47,7 @@ from specklepy.objects.other import Collection
 from specklepy.api.models import Branch 
 
 from flatten import flatten_base
+#from utils.utils_network import calculateAccessibility
 from utils.utils_osm import getBuildings, getRoads
 from utils.utils_other import RESULT_BRANCH
 
@@ -66,6 +67,7 @@ branch: Branch = client.branch.get(project_id, model_id, 1)
 commit = branch.commits.items[0] 
 server_transport = ServerTransport(project_id, client)
 
+r'''
 # to delete:
 commit = client.commit.get(project_id, version_id)
 #################################
@@ -74,22 +76,23 @@ base = receive(commit.referencedObject, server_transport)
 
 objects = [b for b in flatten_base(base)]
 print(objects)
-
+'''
 
 try:
+
     import numpy as np 
-    projInfo = base["info"] #[o for o in objects if o.speckle_type.endswith("Revit.ProjectInfo")][0] 
-    angle_rad = projInfo["locations"][0]["trueNorth"]
-    angle_deg = np.rad2deg(angle_rad)
-    lon = np.rad2deg(projInfo["longitude"])
-    lat = np.rad2deg(projInfo["latitude"])
+    #projInfo = base["info"] #[o for o in objects if o.speckle_type.endswith("Revit.ProjectInfo")][0] 
+    #angle_rad = projInfo["locations"][0]["trueNorth"]
+    #angle_deg = np.rad2deg(angle_rad)
+    #lon = np.rad2deg(projInfo["longitude"])
+    #lat = np.rad2deg(projInfo["latitude"])
 
-    #lat = 42.33868845652055
-    #lon = -71.08536785916132
+    lat = 42.35866165161133
+    lon = -71.0567398071289
 
-    print(angle_rad)
-    print(lon)
-    print(lat)
+    #print(angle_rad)
+    #print(lon)
+    #print(lat)
 
     crsObj = None
     commitObj = Collection(elements = [], units = "m", name = "Context", collectionType = "BuildingsLayer")
@@ -97,26 +100,40 @@ try:
     blds = getBuildings(lat, lon, RADIUS)
     bases = [Base(units = "m", displayValue = [b]) for b in blds]
     bldObj = Collection(elements = bases, units = "m", name = "Context", collectionType = "BuildingsLayer")
-    commitObj.elements.append(bldObj)
-    
-    roads, meshes = getRoads(lat, lon, RADIUS)
+        
+    roads, meshes, analysisMeshes = getRoads(lat, lon, RADIUS)
     roadObj = Collection(elements = roads, units = "m", name = "Context", collectionType = "RoadsLayer")
-    commitObj.elements.append(roadObj)
     roadMeshObj = Collection(elements = meshes, units = "m", name = "Context", collectionType = "RoadMeshesLayer")
-    commitObj.elements.append(roadMeshObj)
-    
+    analysisObj = Collection(elements = analysisMeshes, units = "m", name = "Context", collectionType = "RoadAnalysisLayer")
+        
     # create branch if needed 
     existing_branch = client.branch.get(project_id, RESULT_BRANCH, 1)  
     if existing_branch is None: 
         br_id = client.branch.create(stream_id = project_id, name = RESULT_BRANCH, description = "") 
 
-    objId = send(commitObj, transports=[server_transport]) 
+    commitObj.elements.append(bldObj)
+    commitObj.elements.append(roadObj)
+    commitObj.elements.append(roadMeshObj)
 
+    objId = send(commitObj, transports=[server_transport]) 
     commit_id = client.commit.create(
                 stream_id=project_id,
                 object_id=objId,
                 branch_name=RESULT_BRANCH,
-                message="Sent objects from Automate",
+                message="Context from Automate",
+                source_application="Python",
+            )
+    
+    commitObj.elements = []
+    commitObj.elements.append(bldObj)
+    commitObj.elements.append(analysisObj)
+
+    objId = send(commitObj, transports=[server_transport]) 
+    commit_id = client.commit.create(
+                stream_id=project_id,
+                object_id=objId,
+                branch_name=RESULT_BRANCH,
+                message="Space Syntax from Automate",
                 source_application="Python",
             )
             
