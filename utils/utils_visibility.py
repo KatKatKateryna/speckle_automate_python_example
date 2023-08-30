@@ -53,12 +53,12 @@ def LinePlaneCollision(planeNormal, planePoint, rayDirection, rayPoint, epsilon=
     Psi = w + si * rayDirection + planePoint
     return Psi
 
-def containsPoint(pt: np.array, mesh: Mesh):
+def containsPoint(pt: np.array, mesh: List):
     from shapely.geometry import Point
     from shapely.geometry.polygon import Polygon
 
     point = Point(pt[0], pt[1])
-    polygon = Polygon([ (mesh.vertices[i*3], mesh.vertices[i*3+1]) for i,v in enumerate(mesh.vertices) if i*3<len(mesh.vertices)])
+    polygon = Polygon([ (m[0],m[1],m[2]) for i,m in enumerate(mesh) ])
     result = polygon.contains(point)
     return result
 
@@ -88,17 +88,6 @@ def rotate_vector(pt_origin, vector, half_angl_degrees=60):
             newDir = dot(M0,v)
             vectors.append( np.array( list( map(add, pt_origin, newDir) )) ) 
 
-        #for c in range(count):
-        #    # yz plane
-        #    vector1 = vectors[len(vectors)-1]
-        #    y = vector1[1] * math.cos(half_angle*c/count) - vector1[2] * math.sin(half_angle*c/count)
-        #    z = vector1[1] * math.sin(half_angle*c/count) + vector1[2] * math.cos(half_angle*c/count)
-        #    vectors.append(np.array( [pt_origin[0] + vector1[0], y, z] ))
-        
-        x = vector[0] * math.cos(-half_angle*c/count) - vector[1] * math.sin(-half_angle*c/count)
-        y = vector[0] * math.sin(-half_angle*c/count) + vector[1] * math.cos(-half_angle*c/count)
-        #vectors.append( [x, y, pt_origin[2] + vector[2]])
-
     return vectors
 
 def getAllPlanes(mesh: Mesh):
@@ -109,9 +98,9 @@ def getAllPlanes(mesh: Mesh):
     for count, f in enumerate(fs):
         if i >= len(fs)-1: break
         current_face_index = fs[i]
-        pt1 = [mesh.vertices[3*fs[i]+1], mesh.vertices[3*fs[i]+2], mesh.vertices[3*fs[i]+3]]
-        pt2 = [mesh.vertices[3*fs[i]+4], mesh.vertices[3*fs[i]+5], mesh.vertices[3*fs[i]+6]]
-        pt3 = [mesh.vertices[3*fs[i]+7], mesh.vertices[3*fs[i]+8], mesh.vertices[3*fs[i]+9]]
+        pt1 = [mesh.vertices[3*fs[i+1]], mesh.vertices[3*fs[i+1]+1], mesh.vertices[3*fs[i+1]+2]]
+        pt2 = [mesh.vertices[3*fs[i+2]], mesh.vertices[3*fs[i+2]+1], mesh.vertices[3*fs[i+2]+2]]
+        pt3 = [mesh.vertices[3*fs[i+3]], mesh.vertices[3*fs[i+3]+1], mesh.vertices[3*fs[i+3]+2]]
         meshList.append([pt1, pt2, pt3])
         i += fs[i] + 1 
     return meshList
@@ -142,7 +131,7 @@ def projectToPolygon(point: List[float], vectors: List, mesh: Mesh):
 
             #print (f"intersection at {Psi}")
 
-            result = containsPoint(Psi, mesh)
+            result = containsPoint(Psi, m)
             if result is True:
                 allIntersections.append(Psi)
 

@@ -108,6 +108,7 @@ try:
     vectors = rotate_vector(pt_origin, dir)
 
     # just to find the line
+    r'''
     line = Line(start = start, end = Point.from_list(list( map(add,pt_origin,dir) )))
     line.units = "m"
     lines.append(line)
@@ -115,6 +116,7 @@ try:
         line = Line(start = start, end = Point.from_list( [v[0], v[1], v[2]]))
         line.units = "m"
         lines.append(line)
+    '''
     ###########################
 
     for bld in blds:
