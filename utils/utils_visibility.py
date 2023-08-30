@@ -81,9 +81,12 @@ def rotate_vector(pt_origin, vector, half_angl_degrees=70):
         # xy plane
         x = vector[0] * math.cos(half_angle*c/count) - vector[1] * math.sin(half_angle*c/count)
         y = vector[0] * math.sin(half_angle*c/count) + vector[1] * math.cos(half_angle*c/count)
-        #
         
         v = [x,y,vector[2]]
+        if c==0:
+            vectors.append( np.array( list( map(add, pt_origin, v) )) ) 
+            continue 
+        
         for a in range(0,360,step):
             theta = a*math.pi / 180 
             M0 = M(vector, theta)
@@ -143,6 +146,7 @@ def projectToPolygon(point: List[float], vectors: List[List[float]], usedVectors
 
                 pt_intersect = Point.from_list([collision[0], collision[1], collision[2]])
                 pt_intersect.vectorId = i
+
                 allIntersections.append(pt_intersect)
 
                 try: val = usedVectors[i] + 1
