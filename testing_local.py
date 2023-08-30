@@ -177,10 +177,9 @@ try:
         sortedPts = sortPtsByMesh(cleanPts)
         visible_areas = []
         for ptList in sortedPts:
-            if len(ptList)>2:
-                mesh = concave_hull_create(ptList)
-                if mesh is not None: visible_areas.append(mesh)
-            pass
+            #if len(ptList)>2:
+            mesh = concave_hull_create(ptList)
+            if mesh is not None: visible_areas.append(mesh)
         
         print(len(vectors))
         print(len(lines))

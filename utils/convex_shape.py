@@ -9,7 +9,7 @@ from scipy.spatial import Delaunay
 from collections import Counter
 import itertools
 
-from specklepy.objects.geometry import Polyline, Point, Mesh, Line
+from specklepy.objects.geometry import Pointcloud, Polyline, Point, Mesh, Line
 
 from utils.utils_other import COLOR_VISIBILITY
 from utils.vectors import createPlane, normalize 
@@ -17,9 +17,11 @@ from utils.vectors import createPlane, normalize
 def concave_hull_create(coords: List[np.array]):  # coords is a 2D numpy array
 
     from shapely import to_geojson, convex_hull, buffer, concave_hull, MultiPoint, Polygon
+
+
+    r'''
     vertices = []
     colors = []
-
     if len(coords) < 4: return None
     else:
         plane3d = createPlane(*coords[:3])
@@ -44,8 +46,10 @@ def concave_hull_create(coords: List[np.array]):  # coords is a 2D numpy array
             if vert3d is not None:
                 vertices.extend(vert3d)
             colors.append(COLOR_VISIBILITY)
-    
-    mesh = Mesh.create(vertices=vertices, colors = colors, faces= [ int(len(vertices)/3) ] + list(range( int(len(vertices)/3) )) )
+    '''
+    vert = [c.flatten() for c in coords]
+    flat_list = [num for sublist in vert for num in sublist]
+    mesh = Pointcloud(points=flat_list, colors = [COLOR_VISIBILITY for x in range(len(coords))] )
     return mesh
 
 def remapPt( pt: Union[np.array, list], toHorizontal, plane3d ):

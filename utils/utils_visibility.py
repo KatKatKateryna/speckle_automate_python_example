@@ -50,7 +50,7 @@ def M(axis, theta):
 def rotate_vector(pt_origin, vector, half_angl_degrees=70):
 
     half_angle = np.deg2rad(half_angl_degrees)
-    step = 5 # degrees
+    step = 20 # degrees
 
     vectors = []
     axis = vector # direction
