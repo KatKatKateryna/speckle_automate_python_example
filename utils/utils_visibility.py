@@ -80,12 +80,13 @@ def rotate_vector(pt_origin, vector, half_angle=60):
         y = vector[0] * math.sin(half_angle*c/count) + vector[1] * math.cos(half_angle*c/count)
         vectors.append([x, y, pt_origin[2] + vector[2]] )
         
-        v = vectors[len(vectors)-1]
+        v = [x,y,vector[2]]
         #for theta in [ int(i/10) for i in list(range(-100,100))]:
         theta = 1
+        axis = vector #list( map(add, pt_origin, vector) )
         M0 = M(axis, theta)
         newDir = dot(M0,v)
-        vectors.append( np.array( list( map(add, pt_origin, newDir) ) ))
+        vectors.append( np.array( list( map(add, pt_origin, newDir) )) ) 
 
         #for c in range(count):
         #    # yz plane
@@ -96,14 +97,8 @@ def rotate_vector(pt_origin, vector, half_angle=60):
         
         x = vector[0] * math.cos(-half_angle*c/count) - vector[1] * math.sin(-half_angle*c/count)
         y = vector[0] * math.sin(-half_angle*c/count) + vector[1] * math.cos(-half_angle*c/count)
-        vectors.append( [x, y, pt_origin[2] + vector[2]])
-        #for c in range(count):
-        #    # yz plane
-        #    vector2 = vectors[len(vectors)-1]
-        #    y = vector2[1] * math.cos(half_angle*c/count) - vector2[2] * math.sin(half_angle*c/count)
-        #    z = vector2[1] * math.sin(half_angle*c/count) + vector2[2] * math.cos(half_angle*c/count)
-        #    vectors.append(np.array( [vector2[0], y, z] ))
-    
+        #vectors.append( [x, y, pt_origin[2] + vector[2]])
+
     return vectors
 
 def getAllPlanes(mesh: Mesh):
