@@ -54,7 +54,7 @@ import numpy as np
 from operator import add, sub 
 
 from flatten import flatten_base
-from utils.convex_shape import concave_hull
+from utils.convex_shape import concave_hull_create
 from utils.getComment import get_comments
 #from utils.utils_network import calculateAccessibility
 from utils.utils_osm import getBuildings, getRoads
@@ -65,7 +65,7 @@ server_url = "https://speckle.xyz/" # project_data.speckle_server_url
 project_id = "17b0b76d13" #project_data.project_id
 model_id = "revit tests"
 version_id = "5d720c0998" #project_data.version_id
-RADIUS = 100 #float(project_data.radius) 
+RADIUS = 50 #float(project_data.radius) 
 KEYWORD = "rays"
 onlyIllustrate = False
 #model_id = #project_data.model_id
@@ -164,7 +164,7 @@ try:
         visible_areas = []
         for ptList in sortedPts:
             if len(ptList)>2:
-                mesh = concave_hull(ptList)
+                mesh = concave_hull_create(ptList)
                 if mesh is not None: visible_areas.append(mesh)
             pass
     

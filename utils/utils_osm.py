@@ -152,7 +152,7 @@ def extrudeBuildings(coords: List[dict], height: float):
     polyBorder = [ (vertices[ind*3], vertices[ind*3+1], vertices[ind*3+2] ) for ind in reversed_vert_indices]
     reversed_vert_indices, inverse = fix_orientation(polyBorder, reversed_vert_indices)
     faces.extend( [len(coords)] + reversed_vert_indices)
-
+    r'''
     # top
     reversed_vert_indices = list(range(int(len(vertices)/3), int(len(vertices)/3) + len(coords)))
     for c in coords: 
@@ -163,9 +163,9 @@ def extrudeBuildings(coords: List[dict], height: float):
     reversed_vert_indices, inverse = fix_orientation(polyBorder, reversed_vert_indices)
     reversed_vert_indices.reverse()
     faces.extend( [len(coords)] + reversed_vert_indices)
-
+    '''
     # sides
-    r'''
+    
     for i,c in enumerate(coords):
         if i != len(coords)-1: nextC = coords[i+1] #i+1
         else: nextC = coords[0] #0
@@ -177,7 +177,7 @@ def extrudeBuildings(coords: List[dict], height: float):
         else:
             vertices.extend([c['x'],c['y'],0, nextC['x'],nextC['y'],0, nextC['x'],nextC['y'],height,c['x'],c['y'],height])
         colors.extend([color, color, color, color])
-    '''
+    
     obj = Mesh.create(faces = faces, vertices = vertices)
     obj.units = "m"
     return obj 

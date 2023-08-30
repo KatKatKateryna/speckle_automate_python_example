@@ -11,17 +11,27 @@ from specklepy.objects.geometry import Polyline, Point, Mesh, Line
 
 from utils.utils_other import COLOR_VISIBILITY 
 
-def concave_hull(coords):  # coords is a 2D numpy array
-    from shapely import to_geojson, convex_hull, MultiPoint, Polygon
-    hull = convex_hull(MultiPoint([(pt[0], pt[1], pt[2]) for pt in coords]))
-    area = to_geojson(hull) # POLYGON to geojson 
-    area = json.loads(area)
-
+def concave_hull_create(coords):  # coords is a 2D numpy array
+    from shapely import to_geojson, convex_hull, concave_hull, MultiPoint, Polygon
+    
     vertices = []
     colors = []
 
-    for i,c in enumerate(area["coordinates"][0]):
-        if i != len(area["coordinates"][0])-1:
+    if len(coords) < 4:
+        return None
+    #elif len(coords) == 3:
+    #    new_coords = coords
+    else:
+        hull = concave_hull(MultiPoint([(pt[0], pt[1], pt[2]) for pt in coords]), ratio=0.1)
+        area = to_geojson(hull) # POLYGON to geojson 
+        area = json.loads(area)
+
+
+        if len(area["coordinates"]) > 1: return None
+        new_coords = area["coordinates"][0]
+    
+    for i,c in enumerate(new_coords):
+        if i != len(new_coords)-1:
             if len(c)<3:
                 vertices.extend( c+[coords[0][2]] )
             else: vertices.extend(c)

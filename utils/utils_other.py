@@ -13,12 +13,13 @@ COLOR_VISIBILITY = (255<<24) + (255<<16) + (10<<8) + 10 # argb
 
 def sortPtsByMesh(cleanPts: List[Point]) -> List[List[tuple]]:
     ptsGroups: List[List[np.array]] = []
+    
     usedMeshIds = []
     for pt in cleanPts:
-        meshId = pt.meshId
-        if meshId in usedMeshIds: continue
+        if pt.meshId in usedMeshIds: continue
 
-        morePts: [List[tuple]] = [ (round(p.x), round(p.y), round(p.z,3) ) for p in cleanPts if p.meshId == meshId]
+        meshId = pt.meshId
+        morePts: [List[tuple]] = [ ( p.x, p.y, p.z ) for p in cleanPts if p.meshId == meshId]
         ptsGroups.append(morePts)
         usedMeshIds.append(meshId)
 
