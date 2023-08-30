@@ -60,7 +60,11 @@ def cleanPtsList(pt_origin, all_pts, usedVectors):
                 cleanPts.append(finalPt)
                 
         else:
-            cleanPts.append(pt)
+            p2 = np.array([pt.x, pt.y, pt.z])
+            squared_dist = np.sum((p1-p2)**2, axis=0)
+            dist = np.sqrt(squared_dist)
+            if dist > 0.00001:
+                cleanPts.append(pt)
     return cleanPts
 
 def cleanString(text: str) -> str:
