@@ -2,9 +2,44 @@
 from copy import copy
 from typing import List
 
+import numpy as np
+from specklepy.objects.geometry import Mesh, Point, Line 
+
 RESULT_BRANCH = "automate"
 COLOR_ROAD = (255<<24) + (50<<16) + (50<<8) + 50 # argb
 COLOR_BLD = (255<<24) + (200<<16) + (200<<8) + 200 # argb
+
+def cleanPtsList(pt_origin, all_pts, usedVectors):
+    
+    cleanPts = []
+    checkedPtIds = []
+    p1 = np.array(pt_origin)
+    
+    for i, pt in enumerate(all_pts):
+        if i in checkedPtIds: continue
+        
+        vectorId = pt.vectorId
+        vectorCount = usedVectors[pt.vectorId]
+        if vectorCount>1:
+            pack = [ [np.array([p.x, p.y, p.z]),x]  for x,p in enumerate(all_pts) if p.vectorId == vectorId]
+            competingPts = [ x[0] for x in pack]
+            competingPtIds = [ x[1] for x in pack]
+
+            distance = None
+            finalPt = pt
+            for p2 in competingPts:
+                
+                squared_dist = np.sum((p1-p2)**2, axis=0)
+                dist = np.sqrt(squared_dist)
+                if (distance is None) or (dist < distance and dist>0): 
+                    distance=dist
+                    finalPt = Point.from_list([p2[0], p2[1], p2[2]])
+            if distance is not None:
+                cleanPts.append(finalPt)
+                checkedPtIds.extend(competingPtIds)
+        else:
+            cleanPts.append(pt)
+    return cleanPts
 
 def cleanString(text: str) -> str:
     symbols = r"/[^\d.-]/g, ''"
