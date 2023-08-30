@@ -45,7 +45,7 @@ from specklepy.api.credentials import get_local_accounts
 from specklepy.api.operations import receive, send
 from specklepy.api.client import SpeckleClient
 from specklepy.objects import Base
-from specklepy.objects.geometry import Mesh
+from specklepy.objects.geometry import Mesh, Line, Point 
 from specklepy.objects.other import Collection
 from specklepy.api.models import Branch 
 
@@ -53,13 +53,13 @@ from flatten import flatten_base
 #from utils.utils_network import calculateAccessibility
 from utils.utils_osm import getBuildings, getRoads
 from utils.utils_other import RESULT_BRANCH
-from utils.utils_visibility import projectToPolygon
+from utils.utils_visibility import projectToPolygon, rotate_vector
 
 server_url = "https://speckle.xyz/" # project_data.speckle_server_url
 project_id = "17b0b76d13" #project_data.project_id
 model_id = "revit tests"
 version_id = "5d720c0998" #project_data.version_id
-RADIUS = 300 #float(project_data.radius) 
+RADIUS = 100 #float(project_data.radius) 
 
 #model_id = #project_data.model_id
 
@@ -83,10 +83,8 @@ print(objects)
 '''
 
 try:
-    x = projectToPolygon([5,3,4], [5,6,4], Mesh.create(vertices = [0,0,0,5,0,0,5,19,0,0,14,0], faces=[4,0,1,2,3]))
-    print(x)
-    exit() 
     import numpy as np 
+    from operator import add
     #projInfo = base["info"] #[o for o in objects if o.speckle_type.endswith("Revit.ProjectInfo")][0] 
     #angle_rad = projInfo["locations"][0]["trueNorth"]
     #angle_deg = np.rad2deg(angle_rad)
@@ -96,53 +94,56 @@ try:
     lat = 42.35866165161133
     lon = -71.0567398071289
 
-    #print(angle_rad)
-    #print(lon)
-    #print(lat)
-
     crsObj = None
-    commitObj = Collection(elements = [], units = "m", name = "Context", collectionType = "BuildingsLayer")
-
+    commitObj = Collection(elements = [], units = "m", name = "Context", collectionType = "VilibilityLayer")
     blds = getBuildings(lat, lon, RADIUS)
     bases = [Base(units = "m", displayValue = [b]) for b in blds]
     bldObj = Collection(elements = bases, units = "m", name = "Context", collectionType = "BuildingsLayer")
-        
-    roads, meshes, analysisMeshes = getRoads(lat, lon, RADIUS)
-    roadObj = Collection(elements = roads, units = "m", name = "Context", collectionType = "RoadsLayer")
-    roadMeshObj = Collection(elements = meshes, units = "m", name = "Context", collectionType = "RoadMeshesLayer")
-    analysisObj = Collection(elements = analysisMeshes, units = "m", name = "Context", collectionType = "RoadAnalysisLayer")
-        
+
+    lines = []
+    pt_origin = [0, 0, 50]
+    dir = [1,-1,-0.5]
+    dir = [ int(i*20) for i in dir]
+    start = Point.from_list(pt_origin)
+    vectors = rotate_vector(pt_origin, dir)
+
+    # just to find the line
+    line = Line(start = start, end = Point.from_list(list( map(add,pt_origin,dir) )))
+    line.units = "m"
+    lines.append(line)
+    for v in vectors:
+        line = Line(start = start, end = Point.from_list( [v[0], v[1], v[2]]))
+        line.units = "m"
+        lines.append(line)
+    ###########################
+
+    for bld in blds:
+        # get all intersection points 
+        pts = projectToPolygon(pt_origin, vectors, bld) #Mesh.create(vertices = [0,0,0,5,0,0,5,19,0,0,14,0], faces=[4,0,1,2,3]))
+        for pt in pts:
+            line = Line(start = start, end = Point.from_list([pt[0], pt[1], pt[2]]))
+            line.units = "m"
+            lines.append(line)
+    
+    visibleObj = Collection(elements = lines, units = "m", name = "Context", collectionType = "VisibilityAnalysis")
+
     # create branch if needed 
     existing_branch = client.branch.get(project_id, RESULT_BRANCH, 1)  
     if existing_branch is None: 
         br_id = client.branch.create(stream_id = project_id, name = RESULT_BRANCH, description = "") 
 
     commitObj.elements.append(bldObj)
-    commitObj.elements.append(roadObj)
-    commitObj.elements.append(roadMeshObj)
+    commitObj.elements.append(visibleObj)
 
     objId = send(commitObj, transports=[server_transport]) 
     commit_id = client.commit.create(
                 stream_id=project_id,
                 object_id=objId,
                 branch_name=RESULT_BRANCH,
-                message="Context from Automate",
+                message="Automate",
                 source_application="Python",
             )
     
-    commitObj.elements = []
-    commitObj.elements.append(bldObj)
-    commitObj.elements.append(analysisObj)
-
-    objId = send(commitObj, transports=[server_transport]) 
-    commit_id = client.commit.create(
-                stream_id=project_id,
-                object_id=objId,
-                branch_name=RESULT_BRANCH,
-                message="Space Syntax from Automate",
-                source_application="Python",
-            )
-            
 except Exception as e: 
     raise e 
 

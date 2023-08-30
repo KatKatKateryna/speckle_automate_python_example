@@ -165,6 +165,7 @@ def extrudeBuildings(coords: List[dict], height: float):
     faces.extend( [len(coords)] + reversed_vert_indices)
 
     # sides
+    r'''
     for i,c in enumerate(coords):
         if i != len(coords)-1: nextC = coords[i+1] #i+1
         else: nextC = coords[0] #0
@@ -176,7 +177,7 @@ def extrudeBuildings(coords: List[dict], height: float):
         else:
             vertices.extend([c['x'],c['y'],0, nextC['x'],nextC['y'],0, nextC['x'],nextC['y'],height,c['x'],c['y'],height])
         colors.extend([color, color, color, color])
-
+    '''
     obj = Mesh.create(faces = faces, vertices = vertices)
     obj.units = "m"
     return obj 

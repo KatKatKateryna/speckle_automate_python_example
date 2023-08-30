@@ -2,8 +2,11 @@
 
 import math
 from typing import List
+from scipy.linalg import expm, norm
 
 import numpy as np
+from numpy import cross, eye, dot
+from operator import add
 from specklepy.objects.geometry import Mesh
 
 
@@ -42,7 +45,8 @@ def LinePlaneCollision(planeNormal, planePoint, rayDirection, rayPoint, epsilon=
     # https://gist.github.com/TimSC/8c25ca941d614bf48ebba6b473747d72
     ndotu = planeNormal.dot(rayDirection)
     if abs(ndotu) < epsilon:
-        raise RuntimeError("no intersection or line is within plane")
+        #raise RuntimeError("no intersection or line is within plane")
+        return None 
 
     w = rayPoint - planePoint
     si = -planeNormal.dot(w) / ndotu
@@ -58,63 +62,94 @@ def containsPoint(pt: np.array, mesh: Mesh):
     result = polygon.contains(point)
     return result
 
-def rotate_vector(vector, half_angle=60):
+
+def M(axis, theta):
+    # https://stackoverflow.com/questions/6802577/rotation-of-3d-vector
+    return expm(cross(eye(3), axis/norm(axis)*theta))
+
+def rotate_vector(pt_origin, vector, half_angle=60):
 
     half_angle = np.deg2rad(half_angle)
 
     vectors = []
+    axis = vector # direction
     count = 10
     for c in range(count):
         # xy plane
         x = vector[0] * math.cos(half_angle*c/count) - vector[1] * math.sin(half_angle*c/count)
         y = vector[0] * math.sin(half_angle*c/count) + vector[1] * math.cos(half_angle*c/count)
-        vectors.append([x, y, vector[2]] )
-        for c in range(count):
-            # yz plane
-            vector1 = vectors[len(vectors)-1]
-            y = vector1[1] * math.cos(half_angle*c/count) - vector1[2] * math.sin(half_angle*c/count)
-            z = vector1[1] * math.sin(half_angle*c/count) + vector1[2] * math.cos(half_angle*c/count)
-            vectors.append(np.array( [vector1[0], y, z] ))
+        vectors.append([x, y, pt_origin[2] + vector[2]] )
+        
+        v = vectors[len(vectors)-1]
+        #for theta in [ int(i/10) for i in list(range(-100,100))]:
+        theta = 1
+        M0 = M(axis, theta)
+        newDir = dot(M0,v)
+        vectors.append( np.array( list( map(add, pt_origin, newDir) ) ))
+
+        #for c in range(count):
+        #    # yz plane
+        #    vector1 = vectors[len(vectors)-1]
+        #    y = vector1[1] * math.cos(half_angle*c/count) - vector1[2] * math.sin(half_angle*c/count)
+        #    z = vector1[1] * math.sin(half_angle*c/count) + vector1[2] * math.cos(half_angle*c/count)
+        #    vectors.append(np.array( [pt_origin[0] + vector1[0], y, z] ))
         
         x = vector[0] * math.cos(-half_angle*c/count) - vector[1] * math.sin(-half_angle*c/count)
         y = vector[0] * math.sin(-half_angle*c/count) + vector[1] * math.cos(-half_angle*c/count)
-        vectors.append( [x, y, vector[2]])
-        for c in range(count):
-            # yz plane
-            vector2 = vectors[len(vectors)-1]
-            y = vector2[1] * math.cos(half_angle*c/count) - vector2[2] * math.sin(half_angle*c/count)
-            z = vector2[1] * math.sin(half_angle*c/count) + vector2[2] * math.cos(half_angle*c/count)
-            vectors.append(np.array( [vector2[0], y, z] ))
+        vectors.append( [x, y, pt_origin[2] + vector[2]])
+        #for c in range(count):
+        #    # yz plane
+        #    vector2 = vectors[len(vectors)-1]
+        #    y = vector2[1] * math.cos(half_angle*c/count) - vector2[2] * math.sin(half_angle*c/count)
+        #    z = vector2[1] * math.sin(half_angle*c/count) + vector2[2] * math.cos(half_angle*c/count)
+        #    vectors.append(np.array( [vector2[0], y, z] ))
     
     return vectors
 
-def projectToPolygon(point: List[float], direction: List[float], mesh: Mesh):
+def getAllPlanes(mesh: Mesh):
+    meshList = []
+
+    i = 0
+    fs = mesh.faces
+    for count, f in enumerate(fs):
+        if i >= len(fs)-1: break
+        current_face_index = fs[i]
+        pt1 = [mesh.vertices[3*fs[i]+1], mesh.vertices[3*fs[i]+2], mesh.vertices[3*fs[i]+3]]
+        pt2 = [mesh.vertices[3*fs[i]+4], mesh.vertices[3*fs[i]+5], mesh.vertices[3*fs[i]+6]]
+        pt3 = [mesh.vertices[3*fs[i]+7], mesh.vertices[3*fs[i]+8], mesh.vertices[3*fs[i]+9]]
+        meshList.append([pt1, pt2, pt3])
+        i += fs[i] + 1 
+    return meshList
+    
+def projectToPolygon(point: List[float], vectors: List, mesh: Mesh):
     allIntersections = []
 
-    pt1 = mesh.vertices[0:3]
-    pt2 = mesh.vertices[3:6]
-    pt3 = mesh.vertices[6:9]
-    plane = createPlane(pt1, pt2, pt3)
-    #z = project_to_plane_on_z(point, plane)
+    meshes = getAllPlanes(mesh)
+    for m in meshes: 
 
-    #Define plane
-    planeNormal = np.array(plane["normal"])
-    planePoint = np.array(plane["origin"]) #Any point on the plane
+        pt1, pt2, pt3 = m 
+        plane = createPlane(pt1, pt2, pt3)
+        #z = project_to_plane_on_z(point, plane)
 
-    #Define ray
-    vectors = rotate_vector(direction)
-    #rayDirection = np.array([0, -1, -1])
-    for direct in vectors:
-        rayPoint = np.array(point) #Any point along the ray
-        dir = np.array(direct)
+        #Define plane
+        planeNormal = np.array(plane["normal"])
+        planePoint = np.array(plane["origin"]) #Any point on the plane
 
-        Psi = LinePlaneCollision(planeNormal, planePoint, dir, rayPoint)
-        print ("intersection at", Psi)
+        #Define ray
+        
+        #rayDirection = np.array([0, -1, -1])
+        for direct in vectors:
+            rayPoint = np.array(point) #Any point along the ray
+            dir = np.array(direct)
 
-        result = containsPoint(Psi, mesh)
-        print(result)
-        if result is True:
-            allIntersections.append(Psi)
+            Psi = LinePlaneCollision(planeNormal, planePoint, dir, rayPoint)
+            if Psi is None: continue 
+
+            #print (f"intersection at {Psi}")
+
+            result = containsPoint(Psi, mesh)
+            if result is True:
+                allIntersections.append(Psi)
 
     return allIntersections
 
