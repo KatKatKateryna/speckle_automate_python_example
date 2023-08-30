@@ -7,7 +7,9 @@ from scipy.linalg import expm, norm
 import numpy as np
 from numpy import cross, eye, dot
 from operator import add
-from specklepy.objects.geometry import Mesh, Point, Line 
+from specklepy.objects.geometry import Mesh, Point, Line
+
+from utils.convex_shape import remapPt 
 
 
 def cross_product(pt1, pt2):
@@ -57,8 +59,11 @@ def containsPoint(pt: np.array, mesh: List):
     from shapely.geometry import Point
     from shapely.geometry.polygon import Polygon
 
-    point = Point(pt[0], pt[1])
-    polygon = Polygon([ (m[0],m[1],m[2]) for i,m in enumerate(mesh) ])
+    vert2d = remapPt(pt, toHorizontal = True)
+    mesh2d = [ remapPt(m, toHorizontal = True) for m in mesh ]
+
+    point = Point(vert2d[0], vert2d[1])
+    polygon = Polygon([ (m[0], m[1]) for m in mesh2d ])
     result = polygon.contains(point)
     return result
 

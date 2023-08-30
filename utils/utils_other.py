@@ -19,7 +19,7 @@ def sortPtsByMesh(cleanPts: List[Point]) -> List[List[tuple]]:
         if pt.meshId in usedMeshIds: continue
 
         meshId = pt.meshId
-        morePts: [List[tuple]] = [ ( p.x, p.y, p.z ) for p in cleanPts if p.meshId == meshId]
+        morePts: [List[tuple]] = [ np.array( [p.x, p.y, p.z] ) for p in cleanPts if p.meshId == meshId]
         ptsGroups.append(morePts)
         usedMeshIds.append(meshId)
 
