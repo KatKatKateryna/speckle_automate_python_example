@@ -67,26 +67,26 @@ def M(axis, theta):
     # https://stackoverflow.com/questions/6802577/rotation-of-3d-vector
     return expm(cross(eye(3), axis/norm(axis)*theta))
 
-def rotate_vector(pt_origin, vector, half_angle=60):
+def rotate_vector(pt_origin, vector, half_angl_degrees=60):
 
-    half_angle = np.deg2rad(half_angle)
+    half_angle = np.deg2rad(half_angl_degrees)
+    step = 10 # degrees
 
     vectors = []
     axis = vector # direction
-    count = 10
-    for c in range(count):
+    count = int(half_angl_degrees/step)
+    for c in range(1, count+1):
         # xy plane
         x = vector[0] * math.cos(half_angle*c/count) - vector[1] * math.sin(half_angle*c/count)
         y = vector[0] * math.sin(half_angle*c/count) + vector[1] * math.cos(half_angle*c/count)
-        vectors.append([x, y, pt_origin[2] + vector[2]] )
+        #vectors.append([x, y, pt_origin[2] + vector[2]] )
         
         v = [x,y,vector[2]]
-        #for theta in [ int(i/10) for i in list(range(-100,100))]:
-        theta = 1
-        axis = vector #list( map(add, pt_origin, vector) )
-        M0 = M(axis, theta)
-        newDir = dot(M0,v)
-        vectors.append( np.array( list( map(add, pt_origin, newDir) )) ) 
+        for a in range(0,360,step):
+            theta = a*math.pi / 180 
+            M0 = M(vector, theta)
+            newDir = dot(M0,v)
+            vectors.append( np.array( list( map(add, pt_origin, newDir) )) ) 
 
         #for c in range(count):
         #    # yz plane
