@@ -15,6 +15,8 @@ https://pyproj4.github.io/pyproj/stable/examples.html
 # Network analysis:
 https://networkx.org/documentation/stable/auto_examples/index.html#examples-gallery
 https://github.com/networkx/networkx
+pandana
+osmnet
 
 # Satellite imagery
 https://github.com/yannforget/landsatxplore
@@ -43,6 +45,7 @@ from specklepy.api.credentials import get_local_accounts
 from specklepy.api.operations import receive, send
 from specklepy.api.client import SpeckleClient
 from specklepy.objects import Base
+from specklepy.objects.geometry import Mesh
 from specklepy.objects.other import Collection
 from specklepy.api.models import Branch 
 
@@ -50,6 +53,7 @@ from flatten import flatten_base
 #from utils.utils_network import calculateAccessibility
 from utils.utils_osm import getBuildings, getRoads
 from utils.utils_other import RESULT_BRANCH
+from utils.utils_visibility import projectToPolygon
 
 server_url = "https://speckle.xyz/" # project_data.speckle_server_url
 project_id = "17b0b76d13" #project_data.project_id
@@ -79,7 +83,9 @@ print(objects)
 '''
 
 try:
-
+    x = projectToPolygon([5,3,4], [5,6,4], Mesh.create(vertices = [0,0,0,5,0,0,5,19,0,0,14,0], faces=[4,0,1,2,3]))
+    print(x)
+    exit() 
     import numpy as np 
     #projInfo = base["info"] #[o for o in objects if o.speckle_type.endswith("Revit.ProjectInfo")][0] 
     #angle_rad = projInfo["locations"][0]["trueNorth"]
