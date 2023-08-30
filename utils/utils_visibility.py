@@ -130,12 +130,15 @@ def projectToPolygon(point: List[float], vectors: List[List[float]], usedVectors
         #Define ray
         for i, direct in enumerate(vectors):
             rayPoint = np.array(point) #Any point along the ray
-            dir = np.array(direct)
+            dir = np.array(direct) - rayPoint
 
-            #planeNormal = np.array([0,0,1])
-            #planePoint = np.array([0,0,0])
+            normalOriginal = normalize( dir )
+
             collision = LinePlaneCollision(planeNormal, planePoint, dir, rayPoint)
             if collision is None: continue 
+
+            normalCollision = normalize( np.array(collision)-rayPoint )
+            if int(normalCollision[0]*1000) != int(normalOriginal[0]*1000): continue # if different direction 
 
             result = containsPoint(collision, m)
 
