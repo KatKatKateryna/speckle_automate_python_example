@@ -1,6 +1,7 @@
 
 from copy import copy
 from typing import List
+import math
 
 import numpy as np
 from specklepy.objects.geometry import Mesh, Point, Line 
@@ -8,6 +9,20 @@ from specklepy.objects.geometry import Mesh, Point, Line
 RESULT_BRANCH = "automate"
 COLOR_ROAD = (255<<24) + (50<<16) + (50<<8) + 50 # argb
 COLOR_BLD = (255<<24) + (200<<16) + (200<<8) + 200 # argb
+COLOR_VISIBILITY = (255<<24) + (255<<16) + (10<<8) + 10 # argb
+
+def sortPtsByMesh(cleanPts: List[Point]) -> List[List[tuple]]:
+    ptsGroups: List[List[np.array]] = []
+    usedMeshIds = []
+    for pt in cleanPts:
+        meshId = pt.meshId
+        if meshId in usedMeshIds: continue
+
+        morePts: [List[tuple]] = [ (round(p.x), round(p.y), round(p.z,3) ) for p in cleanPts if p.meshId == meshId]
+        ptsGroups.append(morePts)
+        usedMeshIds.append(meshId)
+
+    return ptsGroups
 
 def cleanPtsList(pt_origin, all_pts, usedVectors):
     
@@ -19,21 +34,25 @@ def cleanPtsList(pt_origin, all_pts, usedVectors):
         if i in checkedPtIds: continue
         
         vectorId = pt.vectorId
+        meshId = pt.meshId
         vectorCount = usedVectors[pt.vectorId]
         if vectorCount>1:
-            pack = [ [np.array([p.x, p.y, p.z]),x]  for x,p in enumerate(all_pts) if p.vectorId == vectorId]
+            pack = [ [np.array([p.x, p.y, p.z]),x,p.meshId]  for x,p in enumerate(all_pts) if p.vectorId == vectorId]
             competingPts = [ x[0] for x in pack]
             competingPtIds = [ x[1] for x in pack]
+            competingPtMeshIds = [ x[2] for x in pack]
 
             distance = None
             finalPt = pt
-            for p2 in competingPts:
+            for x, p2 in enumerate(competingPts):
                 
                 squared_dist = np.sum((p1-p2)**2, axis=0)
                 dist = np.sqrt(squared_dist)
                 if (distance is None) or (dist < distance and dist>0): 
                     distance=dist
                     finalPt = Point.from_list([p2[0], p2[1], p2[2]])
+                    finalPt.meshId = competingPtMeshIds[x]
+                    finalPt.vectorId = vectorId
             if distance is not None:
                 cleanPts.append(finalPt)
                 checkedPtIds.extend(competingPtIds)

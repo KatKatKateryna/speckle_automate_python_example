@@ -54,11 +54,12 @@ import numpy as np
 from operator import add, sub 
 
 from flatten import flatten_base
+from utils.convex_shape import concave_hull
 from utils.getComment import get_comments
 #from utils.utils_network import calculateAccessibility
 from utils.utils_osm import getBuildings, getRoads
-from utils.utils_other import RESULT_BRANCH, cleanPtsList
-from utils.utils_visibility import projectToPolygon, rotate_vector
+from utils.utils_other import RESULT_BRANCH, cleanPtsList, sortPtsByMesh
+from utils.utils_visibility import getAllPlanes, projectToPolygon, rotate_vector
 
 server_url = "https://speckle.xyz/" # project_data.speckle_server_url
 project_id = "17b0b76d13" #project_data.project_id
@@ -143,10 +144,14 @@ try:
     else:
         usedVectors = {}
         all_pts = []
+        count = 0
         for bld in blds:
             # get all intersection points 
-            pts, usedVectors = projectToPolygon(pt_origin, vectors, usedVectors, bld) #Mesh.create(vertices = [0,0,0,5,0,0,5,19,0,0,14,0], faces=[4,0,1,2,3]))
-            all_pts.extend(pts)
+            meshes = getAllPlanes(bld)
+            for mesh in meshes:
+                pts, usedVectors = projectToPolygon(pt_origin, vectors, usedVectors, mesh, count) #Mesh.create(vertices = [0,0,0,5,0,0,5,19,0,0,14,0], faces=[4,0,1,2,3]))
+                all_pts.extend(pts)
+                count +=1
 
         cleanPts = cleanPtsList(pt_origin, all_pts, usedVectors)
         for pt in cleanPts:
@@ -154,8 +159,17 @@ try:
             line = Line(start = start, end = end)
             line.units = "m"
             lines.append(line)
+        
+        sortedPts = sortPtsByMesh(cleanPts)
+        visible_areas = []
+        for ptList in sortedPts:
+            if len(ptList)>2:
+                mesh = concave_hull(ptList)
+                if mesh is not None: visible_areas.append(mesh)
+            pass
     
-    visibleObj = Collection(elements = lines, units = "m", name = "Context", collectionType = "VisibilityAnalysis")
+    visibleLines = Collection(elements = lines, units = "m", name = "Context", collectionType = "VisibilityAnalysis")
+    visibleObj = Collection(elements = visible_areas, units = "m", name = "Context", collectionType = "VisibilityAnalysis")
 
     # create branch if needed 
     existing_branch = client.branch.get(project_id, RESULT_BRANCH, 1)  
@@ -163,6 +177,7 @@ try:
         br_id = client.branch.create(stream_id = project_id, name = RESULT_BRANCH, description = "") 
 
     commitObj.elements.append(bldObj)
+    commitObj.elements.append(visibleLines)
     commitObj.elements.append(visibleObj)
 
     objId = send(commitObj, transports=[server_transport]) 

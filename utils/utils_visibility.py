@@ -114,50 +114,52 @@ def getAllPlanes(mesh: Mesh):
         i += fs[i] + 1 
     return meshList
     
-def projectToPolygon(point: List[float], vectors: List[List[float]], usedVectors: dict, mesh: Mesh):
+def projectToPolygon(point: List[float], vectors: List[List[float]], usedVectors: dict, m, index):
     allIntersections = []
 
-    meshes = getAllPlanes(mesh)
-    for m in meshes: 
+    #meshes = getAllPlanes(mesh)
+    #for x, m in enumerate(meshes): 
 
-        pt1, pt2, pt3 = m[:3]
-        plane = createPlane(pt1, pt2, pt3)
+    pt1, pt2, pt3 = m[:3]
+    plane = createPlane(pt1, pt2, pt3)
 
-        #Define plane
-        planeNormal = np.array(plane["normal"])
-        planePoint = np.array(plane["origin"]) #Any point on the plane
+    #Define plane
+    planeNormal = np.array(plane["normal"])
+    planePoint = np.array(plane["origin"]) #Any point on the plane
 
-        #Define ray
-        for i, direct in enumerate(vectors):
-            rayPoint = np.array(point) #Any point along the ray
-            dir = np.array(direct) - rayPoint
+    #Define ray
+    for i, direct in enumerate(vectors):
+        rayPoint = np.array(point) #Any point along the ray
+        dir = np.array(direct) - rayPoint
 
-            normalOriginal = normalize( dir )
+        normalOriginal = normalize( dir )
 
-            collision = LinePlaneCollision(planeNormal, planePoint, dir, rayPoint)
-            if collision is None: continue 
+        collision = LinePlaneCollision(planeNormal, planePoint, dir, rayPoint)
+        if collision is None: continue 
 
-            normalCollision = normalize( np.array(collision)-rayPoint )
-            if int(normalCollision[0]*1000) != int(normalOriginal[0]*1000): continue # if different direction 
+        normalCollision = normalize( np.array(collision)-rayPoint )
+        if int(normalCollision[0]*1000) != int(normalOriginal[0]*1000): continue # if different direction 
 
-            result = containsPoint(collision, m)
+        result = containsPoint(collision, m)
 
-            if result is True:
-                #allIntersections.append(planePoint)
-                pt_dir = Point.from_list([planePoint[0], planePoint[1], planePoint[2]])
-                pt_dir.vectorId = i
+        if result is True:
+            #allIntersections.append(planePoint)
+            #pt_dir = Point.from_list([planePoint[0], planePoint[1], planePoint[2]])
+            #pt_dir.vectorId = i
+            #pt_dir.meshId = index 
 
-                pt_intersect = Point.from_list([collision[0], collision[1], collision[2]])
-                pt_intersect.vectorId = i
+            pt_intersect = Point.from_list([collision[0], collision[1], collision[2]])
+            pt_intersect.vectorId = i
+            pt_intersect.meshId = index 
 
-                allIntersections.append(pt_intersect)
+            allIntersections.append(pt_intersect)
 
-                try: val = usedVectors[i] + 1
-                except: val = 1
-                usedVectors.update({i:val})
+            try: val = usedVectors[i] + 1
+            except: val = 1
+            usedVectors.update({i:val})
 
-            # only 1 vector
-            #break
+        # only 1 vector
+        #break
         # only 1 side of building 
         #break
 
