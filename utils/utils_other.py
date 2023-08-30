@@ -19,7 +19,7 @@ def sortPtsByMesh(cleanPts: List[Point]) -> List[List[tuple]]:
         if pt.meshId in usedMeshIds: continue
 
         meshId = pt.meshId
-        morePts: [List[tuple]] = [ np.array( [p.x, p.y, p.z] ) for p in cleanPts if p.meshId == meshId]
+        morePts: [List[tuple]] = [ np.array( [round(p.x,5), round(p.y,5), round(p.z,5)] ) for p in cleanPts if p.meshId == meshId]
         ptsGroups.append(morePts)
         usedMeshIds.append(meshId)
 
@@ -43,20 +43,22 @@ def cleanPtsList(pt_origin, all_pts, usedVectors):
             competingPtIds = [ x[1] for x in pack]
             competingPtMeshIds = [ x[2] for x in pack]
 
+            checkedPtIds.extend(competingPtIds) # remove points from this vector from further search
+
             distance = None
-            finalPt = pt
+            finalPt = None
             for x, p2 in enumerate(competingPts):
                 
                 squared_dist = np.sum((p1-p2)**2, axis=0)
                 dist = np.sqrt(squared_dist)
-                if (distance is None) or (dist < distance and dist>0): 
+                if (distance is None or dist < distance) and dist > 0.00001: 
                     distance=dist
                     finalPt = Point.from_list([p2[0], p2[1], p2[2]])
                     finalPt.meshId = competingPtMeshIds[x]
                     finalPt.vectorId = vectorId
-            if distance is not None:
+            if distance is not None and finalPt is not None:
                 cleanPts.append(finalPt)
-                checkedPtIds.extend(competingPtIds)
+                
         else:
             cleanPts.append(pt)
     return cleanPts

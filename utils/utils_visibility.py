@@ -9,34 +9,8 @@ from numpy import cross, eye, dot
 from operator import add
 from specklepy.objects.geometry import Mesh, Point, Line
 
-from utils.convex_shape import remapPt 
-
-
-def cross_product(pt1, pt2):
-    return [ (pt1[1] * pt2[2]) - (pt1[2] * pt2[1]),
-             (pt1[2] * pt2[0]) - (pt1[0] * pt2[2]),
-             (pt1[0] * pt2[1]) - (pt1[1] * pt2[0]) ]
-
-def dot(pt1: List, pt2: List):
-    return (pt1[0] * pt2[0]) + (pt1[1] * pt2[1]) + (pt1[2] * pt2[2])
-
-def normalize(pt: List, tolerance= 1e-10):
-    magnitude = dot(pt, pt) ** 0.5
-    if abs(magnitude - 1) < tolerance:
-        return pt
-
-    if magnitude !=0: scale = 1.0 / magnitude
-    else: scale = 1.0
-    normalized_vector = [coordinate * scale for coordinate in pt]
-    return normalized_vector 
-
-def createPlane(pt1: List, pt2: List, pt3: List):
-    vector1to2 = [ pt2[0]-pt1[0], pt2[1]-pt1[1], pt2[2]-pt1[2] ]
-    vector1to3 = [ pt3[0]-pt1[0], pt3[1]-pt1[1], pt3[2]-pt1[2] ]
-
-    u_direction = normalize(vector1to2)
-    normal = cross_product( u_direction, vector1to3 )
-    return {'origin': pt1, 'normal': normal}
+from utils.convex_shape import remapPt
+from utils.vectors import createPlane, normalize 
 
 #def project_to_plane_on_z(point: List, plane: dict):
 #    d = dot(plane["normal"], plane["origin"])
@@ -59,8 +33,9 @@ def containsPoint(pt: np.array, mesh: List):
     from shapely.geometry import Point
     from shapely.geometry.polygon import Polygon
 
-    vert2d = remapPt(pt, toHorizontal = True)
-    mesh2d = [ remapPt(m, toHorizontal = True) for m in mesh ]
+    plane3d = createPlane(*mesh[:3])
+    vert2d = remapPt(pt, True, plane3d)
+    mesh2d = [ remapPt(m, True, plane3d) for m in mesh ]
 
     point = Point(vert2d[0], vert2d[1])
     polygon = Polygon([ (m[0], m[1]) for m in mesh2d ])
@@ -137,11 +112,10 @@ def projectToPolygon(point: List[float], vectors: List[List[float]], usedVectors
         rayPoint = np.array(point) #Any point along the ray
         dir = np.array(direct) - rayPoint
 
+        # check collision and its direction 
         normalOriginal = normalize( dir )
-
         collision = LinePlaneCollision(planeNormal, planePoint, dir, rayPoint)
         if collision is None: continue 
-
         normalCollision = normalize( np.array(collision)-rayPoint )
         if int(normalCollision[0]*1000) != int(normalOriginal[0]*1000): continue # if different direction 
 
@@ -162,11 +136,6 @@ def projectToPolygon(point: List[float], vectors: List[List[float]], usedVectors
             try: val = usedVectors[i] + 1
             except: val = 1
             usedVectors.update({i:val})
-
-        # only 1 vector
-        #break
-        # only 1 side of building 
-        #break
 
     return allIntersections, usedVectors
 

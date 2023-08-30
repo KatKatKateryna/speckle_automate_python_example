@@ -54,12 +54,26 @@ import numpy as np
 from operator import add, sub 
 
 from flatten import flatten_base
-from utils.convex_shape import concave_hull_create
+from utils.convex_shape import concave_hull_create, remapPt
 from utils.getComment import get_comments
 #from utils.utils_network import calculateAccessibility
 from utils.utils_osm import getBuildings, getRoads
 from utils.utils_other import RESULT_BRANCH, cleanPtsList, sortPtsByMesh
-from utils.utils_visibility import getAllPlanes, projectToPolygon, rotate_vector
+from utils.utils_visibility import containsPoint, getAllPlanes, projectToPolygon, rotate_vector
+from utils.vectors import createPlane
+
+r'''
+mesh = [ [50,10,0], [50,10,10], [60,0,10], [60,0,0] ]
+pt = [55,5,5]
+
+plane3d = createPlane(*mesh[:3])
+vert2d = remapPt(pt, True, plane3d)
+mesh2d = [ remapPt(m, True, plane3d) for m in mesh ]
+
+res = containsPoint(np.array(pt), mesh)
+
+exit()
+'''
 
 server_url = "https://speckle.xyz/" # project_data.speckle_server_url
 project_id = "17b0b76d13" #project_data.project_id
@@ -167,6 +181,12 @@ try:
                 mesh = concave_hull_create(ptList)
                 if mesh is not None: visible_areas.append(mesh)
             pass
+        
+        print(len(vectors))
+        print(len(lines))
+
+        visibility = (len(vectors) - len(lines))/len(vectors) * 100
+        print(f"Visible sky: {visibility}%")
     
     visibleLines = Collection(elements = lines, units = "m", name = "Context", collectionType = "VisibilityAnalysis")
     visibleObj = Collection(elements = visible_areas, units = "m", name = "Context", collectionType = "VisibilityAnalysis")
