@@ -83,9 +83,9 @@ model_id = "revit tests"
 version_id = "5d720c0998" #project_data.version_id
 RADIUS = 50 #float(project_data.radius) 
 KEYWORD = "rays"
-HALF_VIEW_DEGREES = 70
-STEP_DEGREES = 10
-onlyIllustrate = False
+HALF_VIEW_DEGREES = 20
+STEP_DEGREES = 1
+onlyIllustrate = False 
 #model_id = #project_data.model_id
 
 account = get_local_accounts()[2]
@@ -144,6 +144,7 @@ try:
     bldObj = Collection(elements = bases, units = "m", name = "Context", collectionType = "BuildingsLayer")
 
     lines = []
+    cloud = []
     dir = [ int(i*1) for i in dir]
     start = Point.from_list(pt_origin)
     vectors = rotate_vector(pt_origin, dir, HALF_VIEW_DEGREES, STEP_DEGREES)
@@ -203,7 +204,7 @@ try:
             color = (255<<24) + (r<<16) + (g<<8) + b # argb
             colors.append(color)
                     
-        cloud = Pointcloud(points = points, colors = colors )
+        cloud = [ Pointcloud(points = points, colors = colors )]
 
         print(len(vectors))
         print(len(lines))
@@ -212,7 +213,7 @@ try:
         print(f"Visible sky: {visibility}%")
     
     visibleLines = Collection(elements = lines, units = "m", name = "Context", collectionType = "VisibilityAnalysis")
-    visibleObj = Collection(elements = [cloud], units = "m", name = "Context", collectionType = "VisibilityAnalysis")
+    visibleObj = Collection(elements = cloud, units = "m", name = "Context", collectionType = "VisibilityAnalysis")
 
     # create branch if needed 
     existing_branch = client.branch.get(project_id, RESULT_BRANCH, 1)  
@@ -220,8 +221,8 @@ try:
         br_id = client.branch.create(stream_id = project_id, name = RESULT_BRANCH, description = "") 
 
     #commitObj.elements.append(bldObj)
-    #commitObj.elements.append(visibleLines)
-    commitObj.elements.append(visibleObj)
+    if onlyIllustrate is True: commitObj.elements.append(visibleLines)
+    else: commitObj.elements.append(visibleObj)
 
     objId = send(commitObj, transports=[server_transport]) 
     commit_id = client.commit.create(

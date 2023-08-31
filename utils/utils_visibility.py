@@ -55,7 +55,7 @@ def rotate_vector(pt_origin, vector, half_angle_degrees=70, step = 10):
     axis = vector # direction
     #vectors.append( np.array( list( map(add, pt_origin, vector) )) )
 
-    count = int(half_angle_degrees/step)
+    count = int(half_angle_degrees/step) # horizontal expansion 
     for c in range(0, count+1):
         # xy plane
         x = vector[0] * math.cos(half_angle*c/count) - vector[1] * math.sin(half_angle*c/count)
@@ -66,7 +66,11 @@ def rotate_vector(pt_origin, vector, half_angle_degrees=70, step = 10):
             vectors.append( np.array( list( map(add, pt_origin, v) )) ) 
             continue 
         
-        for a in range(0,360,step):
+        coeff = math.pow( (count+1 - c) / (count+1), 3)
+        step2 = int( coeff * (count+1 - c) * step ) 
+        if step2 == 0: step2 = 1
+
+        for a in range(0,360,step2): 
             theta = a*math.pi / 180 
             M0 = M(vector, theta)
             newDir = dot(M0,v)
