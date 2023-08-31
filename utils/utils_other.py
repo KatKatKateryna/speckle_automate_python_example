@@ -4,7 +4,7 @@ from typing import List
 import math
 
 import numpy as np
-from specklepy.objects.geometry import Mesh, Point, Line 
+from specklepy.objects.geometry import Mesh, Point, Line
 
 RESULT_BRANCH = "automate"
 COLOR_ROAD = (255<<24) + (50<<16) + (50<<8) + 50 # argb

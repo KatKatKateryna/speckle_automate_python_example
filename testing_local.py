@@ -61,7 +61,7 @@ from utils.getComment import get_comments
 #from utils.utils_network import calculateAccessibility
 from utils.utils_osm import getBuildings, getRoads
 from utils.utils_other import RESULT_BRANCH, cleanPtsList, sortPtsByMesh
-from utils.utils_visibility import containsPoint, getAllPlanes, projectToPolygon, rotate_vector
+from utils.utils_visibility import containsPoint, getAllPlanes, projectToPolygon, rotate_vector, expandPtsList
 from utils.vectors import createPlane
 
 r'''
@@ -83,8 +83,8 @@ model_id = "revit tests"
 version_id = "5d720c0998" #project_data.version_id
 RADIUS = 50 #float(project_data.radius) 
 KEYWORD = "rays"
-HALF_VIEW_DEGREES = 20
-STEP_DEGREES = 1
+HALF_VIEW_DEGREES = 30
+STEP_DEGREES = 5
 onlyIllustrate = False 
 #model_id = #project_data.model_id
 
@@ -164,22 +164,30 @@ try:
         usedVectors = {}
         all_pts = []
         count = 0
+        all_geom = []
         for bld in blds:
             # get all intersection points 
             meshes = getAllPlanes(bld)
             for mesh in meshes:
+                all_geom.append(mesh)
                 pts, usedVectors = projectToPolygon(pt_origin, vectors, usedVectors, mesh, count) #Mesh.create(vertices = [0,0,0,5,0,0,5,19,0,0,14,0], faces=[4,0,1,2,3]))
                 all_pts.extend(pts)
                 count +=1
 
         cleanPts = cleanPtsList(pt_origin, all_pts, usedVectors)
+
+        ### expand number of pts around filtere rays 
+        cleanPts2 = []
+        #expandedPts, usedVectors2 = expandPtsList(pt_origin, cleanPts, {}, STEP_DEGREES, all_geom)
+        #cleanPts2 = cleanPtsList(pt_origin, expandedPts, usedVectors2)
+
         for pt in cleanPts:
             end = pt #Point.from_list(list(pt))
             line = Line(start = start, end = end)
             line.units = "m"
             lines.append(line)
         
-        sortedPts = sortPtsByMesh(cleanPts)
+        sortedPts = sortPtsByMesh(cleanPts + cleanPts2)
         visible_areas = []
 
         points = []

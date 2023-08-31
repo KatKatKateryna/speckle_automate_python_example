@@ -6,10 +6,11 @@ from scipy.linalg import expm, norm
 
 import numpy as np
 from numpy import cross, eye, dot
-from operator import add
+from operator import add, sub
 from specklepy.objects.geometry import Mesh, Point, Line
 
 from utils.convex_shape import remapPt
+from utils.utils_other import cleanPtsList
 from utils.vectors import createPlane, normalize 
 
 #def project_to_plane_on_z(point: List, plane: dict):
@@ -66,7 +67,7 @@ def rotate_vector(pt_origin, vector, half_angle_degrees=70, step = 10):
             vectors.append( np.array( list( map(add, pt_origin, v) )) ) 
             continue 
         
-        coeff = math.pow( (count+1 - c) / (count+1), 3)
+        coeff = 1- math.pow( (count+1 - c) / (count+1), 6)
         step2 = int( coeff * (count+1 - c) * step ) 
         if step2 == 0: step2 = 1
 
@@ -133,6 +134,7 @@ def projectToPolygon(point: List[float], vectors: List[List[float]], usedVectors
             pt_intersect = Point.from_list([collision[0], collision[1], collision[2]])
             pt_intersect.vectorId = i
             pt_intersect.meshId = index 
+            pt_intersect.distance = np.sqrt(np.sum(( np.array(point) -collision)**2, axis=0))
 
             allIntersections.append(pt_intersect)
 
@@ -142,5 +144,37 @@ def projectToPolygon(point: List[float], vectors: List[List[float]], usedVectors
 
     return allIntersections, usedVectors
 
+
+def expandPtsList(pt_origin, all_pts, usedVectors, step_original, all_geom):
+
+    new_pts = []
+    vectors = []
+    half_angle_degrees = int(step_original/3)
+    half_angle = np.deg2rad(half_angle_degrees)
+
+    for ptSpeckle in all_pts:
+        
+        pt = [ptSpeckle.x, ptSpeckle.y, ptSpeckle.z]
+        vector =  np.array( list(map(sub, pt, pt_origin)) ) # direction
+        # xy plane
+        x = vector[0] * math.cos(half_angle) - vector[1] * math.sin(half_angle)
+        y = vector[0] * math.sin(half_angle) + vector[1] * math.cos(half_angle)
+        
+        v = [x,y,vector[2]]
+        axis = vector
+        
+        for a in range(0,360,120): 
+            theta = a*math.pi / 180 
+            M0 = M(axis, theta)
+            newDir = dot(M0,v)
+            vectors.append( np.array( list( map(add, pt_origin, newDir) )) ) 
+    
+    # project rays 
+    count = 0
+    for mesh in all_geom:
+        pts, usedVectors = projectToPolygon(pt_origin, vectors, usedVectors, mesh, count) #Mesh.create(vertices = [0,0,0,5,0,0,5,19,0,0,14,0], faces=[4,0,1,2,3]))
+        new_pts.extend( pts )
+        count +=1
+    return new_pts, usedVectors
 
 
