@@ -178,8 +178,8 @@ try:
 
         ### expand number of pts around filtere rays 
         cleanPts2 = []
-        #expandedPts, usedVectors2 = expandPtsList(pt_origin, cleanPts, {}, STEP_DEGREES, all_geom)
-        #cleanPts2 = cleanPtsList(pt_origin, expandedPts, usedVectors2)
+        expandedPts, usedVectors2 = expandPtsList(pt_origin, cleanPts, {}, STEP_DEGREES, all_geom)
+        cleanPts2 = cleanPtsList(pt_origin, expandedPts, usedVectors2)
 
         for pt in cleanPts:
             end = pt #Point.from_list(list(pt))

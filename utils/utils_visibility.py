@@ -67,7 +67,7 @@ def rotate_vector(pt_origin, vector, half_angle_degrees=70, step = 10):
             vectors.append( np.array( list( map(add, pt_origin, v) )) ) 
             continue 
         
-        coeff = 1- math.pow( (count+1 - c) / (count+1), 6)
+        coeff = 1- math.pow( (count+1 - c) / (count+1), 10)
         step2 = int( coeff * (count+1 - c) * step ) 
         if step2 == 0: step2 = 1
 
@@ -149,7 +149,7 @@ def expandPtsList(pt_origin, all_pts, usedVectors, step_original, all_geom):
 
     new_pts = []
     vectors = []
-    half_angle_degrees = int(step_original/3)
+    half_angle_degrees = int(step_original/2.5)
     half_angle = np.deg2rad(half_angle_degrees)
 
     for ptSpeckle in all_pts:
@@ -163,7 +163,7 @@ def expandPtsList(pt_origin, all_pts, usedVectors, step_original, all_geom):
         v = [x,y,vector[2]]
         axis = vector
         
-        for a in range(0,360,120): 
+        for a in range(0,360,60): 
             theta = a*math.pi / 180 
             M0 = M(axis, theta)
             newDir = dot(M0,v)
