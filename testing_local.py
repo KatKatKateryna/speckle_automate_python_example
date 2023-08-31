@@ -40,18 +40,20 @@ https://github.com/geopandas/geopandas
 '''
 from copy import copy
 import json
+import math
 from typing import List
 from specklepy.transports.server import ServerTransport
 from specklepy.api.credentials import get_local_accounts
 from specklepy.api.operations import receive, send
 from specklepy.api.client import SpeckleClient
 from specklepy.objects import Base
-from specklepy.objects.geometry import Mesh, Line, Point 
+from specklepy.objects.geometry import Mesh, Line, Point, Pointcloud 
 from specklepy.objects.other import Collection
 from specklepy.api.models import Branch 
 
 import numpy as np 
 from operator import add, sub 
+import matplotlib as mpl
 
 from flatten import flatten_base
 from utils.convex_shape import concave_hull_create, remapPt
@@ -81,6 +83,8 @@ model_id = "revit tests"
 version_id = "5d720c0998" #project_data.version_id
 RADIUS = 50 #float(project_data.radius) 
 KEYWORD = "rays"
+HALF_VIEW_DEGREES = 70
+STEP_DEGREES = 10
 onlyIllustrate = False
 #model_id = #project_data.model_id
 
@@ -142,7 +146,7 @@ try:
     lines = []
     dir = [ int(i*1) for i in dir]
     start = Point.from_list(pt_origin)
-    vectors = rotate_vector(pt_origin, dir)
+    vectors = rotate_vector(pt_origin, dir, HALF_VIEW_DEGREES, STEP_DEGREES)
 
     # just to find the line
     if onlyIllustrate is True:
@@ -176,11 +180,31 @@ try:
         
         sortedPts = sortPtsByMesh(cleanPts)
         visible_areas = []
+
+        points = []
+        colors = []
+        distances = []
+
         for ptList in sortedPts:
-            #if len(ptList)>2:
-            mesh = concave_hull_create(ptList)
-            if mesh is not None: visible_areas.append(mesh)
-        
+            flat_list = []
+            for p in ptList:
+                points.extend([p.x, p.y, p.z])
+                distances.append(p.distance)
+
+        for d in distances:
+            fraction = math.pow( (max(distances)-d)/max(distances), 0.4 )
+            # https://matplotlib.org/stable/tutorials/colors/colormaps.html
+            cmap = mpl.colormaps['jet']
+            map = cmap(fraction)
+            r = int(map[0]*255) # int(poly.count / maxCount)*255
+            g = int(map[1]*255) # int(poly.count / maxCount)*255
+            b = int(map[2]*255) # 255 - int( poly.count / maxCount)*255
+
+            color = (255<<24) + (r<<16) + (g<<8) + b # argb
+            colors.append(color)
+                    
+        cloud = Pointcloud(points = points, colors = colors )
+
         print(len(vectors))
         print(len(lines))
 
@@ -188,15 +212,15 @@ try:
         print(f"Visible sky: {visibility}%")
     
     visibleLines = Collection(elements = lines, units = "m", name = "Context", collectionType = "VisibilityAnalysis")
-    visibleObj = Collection(elements = visible_areas, units = "m", name = "Context", collectionType = "VisibilityAnalysis")
+    visibleObj = Collection(elements = [cloud], units = "m", name = "Context", collectionType = "VisibilityAnalysis")
 
     # create branch if needed 
     existing_branch = client.branch.get(project_id, RESULT_BRANCH, 1)  
     if existing_branch is None: 
         br_id = client.branch.create(stream_id = project_id, name = RESULT_BRANCH, description = "") 
 
-    commitObj.elements.append(bldObj)
-    commitObj.elements.append(visibleLines)
+    #commitObj.elements.append(bldObj)
+    #commitObj.elements.append(visibleLines)
     commitObj.elements.append(visibleObj)
 
     objId = send(commitObj, transports=[server_transport]) 
@@ -210,4 +234,3 @@ try:
     
 except Exception as e: 
     raise e 
-

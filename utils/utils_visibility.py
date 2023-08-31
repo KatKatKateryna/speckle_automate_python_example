@@ -47,16 +47,15 @@ def M(axis, theta):
     # https://stackoverflow.com/questions/6802577/rotation-of-3d-vector
     return expm(cross(eye(3), axis/norm(axis)*theta))
 
-def rotate_vector(pt_origin, vector, half_angl_degrees=70):
+def rotate_vector(pt_origin, vector, half_angle_degrees=70, step = 10):
 
-    half_angle = np.deg2rad(half_angl_degrees)
-    step = 20 # degrees
+    half_angle = np.deg2rad(half_angle_degrees)
 
     vectors = []
     axis = vector # direction
     #vectors.append( np.array( list( map(add, pt_origin, vector) )) )
 
-    count = int(half_angl_degrees/step)
+    count = int(half_angle_degrees/step)
     for c in range(0, count+1):
         # xy plane
         x = vector[0] * math.cos(half_angle*c/count) - vector[1] * math.sin(half_angle*c/count)

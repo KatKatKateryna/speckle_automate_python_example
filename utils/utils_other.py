@@ -11,7 +11,7 @@ COLOR_ROAD = (255<<24) + (50<<16) + (50<<8) + 50 # argb
 COLOR_BLD = (255<<24) + (200<<16) + (200<<8) + 200 # argb
 COLOR_VISIBILITY = (255<<24) + (255<<16) + (10<<8) + 10 # argb
 
-def sortPtsByMesh(cleanPts: List[Point]) -> List[List[tuple]]:
+def sortPtsByMesh(cleanPts: List[Point]) -> List[Point]:
     ptsGroups: List[List[np.array]] = []
     
     usedMeshIds = []
@@ -19,7 +19,7 @@ def sortPtsByMesh(cleanPts: List[Point]) -> List[List[tuple]]:
         if pt.meshId in usedMeshIds: continue
 
         meshId = pt.meshId
-        morePts: [List[tuple]] = [ np.array( [round(p.x,5), round(p.y,5), round(p.z,5)] ) for p in cleanPts if p.meshId == meshId]
+        morePts = [ p for p in cleanPts if p.meshId == meshId]
         ptsGroups.append(morePts)
         usedMeshIds.append(meshId)
 
@@ -56,6 +56,7 @@ def cleanPtsList(pt_origin, all_pts, usedVectors):
                     finalPt = Point.from_list([p2[0], p2[1], p2[2]])
                     finalPt.meshId = competingPtMeshIds[x]
                     finalPt.vectorId = vectorId
+                    finalPt.distance = dist
             if distance is not None and finalPt is not None:
                 cleanPts.append(finalPt)
                 
