@@ -127,7 +127,7 @@ print(objects)
 '''
 
 
-try:
+def run():
     #projInfo = base["info"] #[o for o in objects if o.speckle_type.endswith("Revit.ProjectInfo")][0] 
     #angle_rad = projInfo["locations"][0]["trueNorth"]
     #angle_deg = np.rad2deg(angle_rad)
@@ -178,8 +178,13 @@ try:
 
         ### expand number of pts around filtere rays 
         cleanPts2 = []
-        expandedPts, usedVectors2 = expandPtsList(pt_origin, cleanPts, {}, STEP_DEGREES, all_geom)
-        cleanPts2 = cleanPtsList(pt_origin, expandedPts, usedVectors2)
+        expandedPts2, usedVectors2 = expandPtsList(pt_origin, cleanPts, {}, STEP_DEGREES, all_geom)
+        cleanPts2 = cleanPtsList(pt_origin, expandedPts2, usedVectors2)
+        ### expand number of pts around filtere rays 
+        cleanPts3 = []
+        #clean_extended_pts = cleanPts + cleanPts2
+        #expandedPts3, usedVectors3 = expandPtsList(pt_origin, clean_extended_pts, {}, int(STEP_DEGREES/2.5), all_geom)
+        #cleanPts3 = cleanPtsList(pt_origin, expandedPts3, usedVectors3)
 
         for pt in cleanPts:
             end = pt #Point.from_list(list(pt))
@@ -187,7 +192,7 @@ try:
             line.units = "m"
             lines.append(line)
         
-        sortedPts = sortPtsByMesh(cleanPts + cleanPts2)
+        sortedPts = sortPtsByMesh(cleanPts + cleanPts2 + cleanPts3)
         visible_areas = []
 
         points = []
@@ -241,5 +246,4 @@ try:
                 source_application="Python",
             )
     
-except Exception as e: 
-    raise e 
+run() 
