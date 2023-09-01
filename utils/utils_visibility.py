@@ -1,6 +1,7 @@
 
 
 import math
+import random
 from typing import List
 from scipy.linalg import expm, norm
 
@@ -67,7 +68,7 @@ def rotate_vector(pt_origin, vector, half_angle_degrees=70, step = 10):
             vectors.append( np.array( list( map(add, pt_origin, v) )) ) 
             continue 
         
-        coeff = 1- math.pow( (count+1 - c) / (count+1), 10)
+        coeff = 1- math.pow( (count+1 - c) / (count+1), 100)
         step2 = int( coeff * (count+1 - c) * step ) 
         if step2 == 0: step2 = 1
 
@@ -145,15 +146,18 @@ def projectToPolygon(point: List[float], vectors: List[List[float]], usedVectors
     return allIntersections, usedVectors
 
 
-def expandPtsList(pt_origin, all_pts, usedVectors, step_original, all_geom):
+def expandPtsList(pt_origin, all_pts, usedVectors, step_original, all_geom, mesh_nearby):
 
     new_pts = []
-    vectors = []
-    half_angle_degrees = int(step_original/2.5)
+    #
+    half_angle_degrees = step_original/2
+    if half_angle_degrees ==0: half_angle_degrees = 1
+    if half_angle_degrees == step_original:
+        return
     half_angle = np.deg2rad(half_angle_degrees)
 
-    for ptSpeckle in all_pts:
-        
+    for i, ptSpeckle in enumerate(all_pts):
+        vectors = []
         pt = [ptSpeckle.x, ptSpeckle.y, ptSpeckle.z]
         vector =  np.array( list(map(sub, pt, pt_origin)) ) # direction
         # xy plane
@@ -163,18 +167,21 @@ def expandPtsList(pt_origin, all_pts, usedVectors, step_original, all_geom):
         v = [x,y,vector[2]]
         axis = vector
         
-        for a in range(0,360,60): 
+        ran = random.randint(0,10)
+        for a in range(ran,360+ran,60): 
             theta = a*math.pi / 180 
             M0 = M(axis, theta)
             newDir = dot(M0,v)
             vectors.append( np.array( list( map(add, pt_origin, newDir) )) ) 
     
-    # project rays 
-    count = 0
-    for mesh in all_geom:
-        pts, usedVectors = projectToPolygon(pt_origin, vectors, usedVectors, mesh, count) #Mesh.create(vertices = [0,0,0,5,0,0,5,19,0,0,14,0], faces=[4,0,1,2,3]))
-        new_pts.extend( pts )
-        count +=1
+        # project rays 
+        count = 0
+        for mesh in all_geom:
+            if count in ([ptSpeckle.meshId] + mesh_nearby[i]):  
+                pts, usedVectors = projectToPolygon(pt_origin, vectors, {}, mesh, count) #Mesh.create(vertices = [0,0,0,5,0,0,5,19,0,0,14,0], faces=[4,0,1,2,3]))
+                new_pts.extend( pts )
+            count +=1
+        #break
     return new_pts, usedVectors
 
 

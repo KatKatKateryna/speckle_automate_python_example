@@ -60,7 +60,7 @@ from utils.convex_shape import concave_hull_create, remapPt
 from utils.getComment import get_comments
 #from utils.utils_network import calculateAccessibility
 from utils.utils_osm import getBuildings, getRoads
-from utils.utils_other import RESULT_BRANCH, cleanPtsList, sortPtsByMesh
+from utils.utils_other import RESULT_BRANCH, cleanPtsList, findMeshesNearby, sortPtsByMesh
 from utils.utils_visibility import containsPoint, getAllPlanes, projectToPolygon, rotate_vector, expandPtsList
 from utils.vectors import createPlane
 
@@ -85,7 +85,6 @@ RADIUS = 50 #float(project_data.radius)
 KEYWORD = "rays"
 HALF_VIEW_DEGREES = 30
 STEP_DEGREES = 5
-onlyIllustrate = False 
 #model_id = #project_data.model_id
 
 account = get_local_accounts()[2]
@@ -97,23 +96,6 @@ commit = branch.commits.items[0]
 server_transport = ServerTransport(project_id, client)
 
 
-pt_origin = [0, 0, 50]
-dir = [1,-1,-0.5]
-
-comments = get_comments(
-    client,
-    project_id,
-)
-#print(comments)
-for item in comments["comments"]["items"]:
-    if KEYWORD.lower() in item["rawText"].lower():
-        viewerState = item["viewerState"]
-        pt_origin: List[float] = viewerState["ui"]["selection"]
-
-        pos: List[float] = viewerState["ui"]["camera"]["position"]
-        target: List[float] = viewerState["ui"]["camera"]["target"]
-        dir = list( map(sub, pos, target) )
-        break 
 #exit()
 r'''
 # to delete:
@@ -127,7 +109,28 @@ print(objects)
 '''
 
 
-def run():
+def run(client, server_transport):
+    
+    onlyIllustrate = False 
+
+    pt_origin = [0, 0, 50]
+    dir = [1,-1,-0.5]
+
+    comments = get_comments(
+        client,
+        project_id,
+    )
+    pos = None
+    for item in comments["comments"]["items"]:
+        if KEYWORD.lower() in item["rawText"].lower():
+            viewerState = item["viewerState"]
+            pt_origin: List[float] = viewerState["ui"]["selection"]
+
+            pos: List[float] = viewerState["ui"]["camera"]["position"]
+            target: List[float] = viewerState["ui"]["camera"]["target"]
+            dir = list( map(sub, pos, target) )
+            break 
+    if pos is None: return 
     #projInfo = base["info"] #[o for o in objects if o.speckle_type.endswith("Revit.ProjectInfo")][0] 
     #angle_rad = projInfo["locations"][0]["trueNorth"]
     #angle_deg = np.rad2deg(angle_rad)
@@ -175,24 +178,25 @@ def run():
                 count +=1
 
         cleanPts = cleanPtsList(pt_origin, all_pts, usedVectors)
+        mesh_nearby = findMeshesNearby(cleanPts)
 
         ### expand number of pts around filtere rays 
-        cleanPts2 = []
-        expandedPts2, usedVectors2 = expandPtsList(pt_origin, cleanPts, {}, STEP_DEGREES, all_geom)
-        cleanPts2 = cleanPtsList(pt_origin, expandedPts2, usedVectors2)
-        ### expand number of pts around filtere rays 
-        cleanPts3 = []
-        #clean_extended_pts = cleanPts + cleanPts2
-        #expandedPts3, usedVectors3 = expandPtsList(pt_origin, clean_extended_pts, {}, int(STEP_DEGREES/2.5), all_geom)
-        #cleanPts3 = cleanPtsList(pt_origin, expandedPts3, usedVectors3)
+        expandedPts2 = []
+        expandedPts2, usedVectors2 = expandPtsList(pt_origin, cleanPts, {}, STEP_DEGREES, all_geom, mesh_nearby)
 
-        for pt in cleanPts:
-            end = pt #Point.from_list(list(pt))
-            line = Line(start = start, end = end)
-            line.units = "m"
-            lines.append(line)
+        ### expand number of pts around filtere rays 
+        expandedPts3 = []
+        clean_extended_pts = cleanPts + expandedPts2
+        mesh_nearby = findMeshesNearby(clean_extended_pts)
+        expandedPts3, usedVectors3 = expandPtsList(pt_origin, clean_extended_pts, {}, STEP_DEGREES/2.5, all_geom, mesh_nearby)
         
-        sortedPts = sortPtsByMesh(cleanPts + cleanPts2 + cleanPts3)
+        ### expand number of pts around filtere rays 
+        expandedPts4 = []
+        clean_extended_pts = clean_extended_pts + expandedPts3
+        mesh_nearby = findMeshesNearby(clean_extended_pts)
+        expandedPts4, usedVectors4 = expandPtsList(pt_origin, clean_extended_pts, {}, STEP_DEGREES/5, all_geom, mesh_nearby)
+
+        sortedPts = sortPtsByMesh(cleanPts + expandedPts2 + expandedPts3 + expandedPts4)
         visible_areas = []
 
         points = []
@@ -209,10 +213,10 @@ def run():
             fraction = math.pow( (max(distances)-d)/max(distances), 0.4 )
             # https://matplotlib.org/stable/tutorials/colors/colormaps.html
             cmap = mpl.colormaps['jet']
-            map = cmap(fraction)
-            r = int(map[0]*255) # int(poly.count / maxCount)*255
-            g = int(map[1]*255) # int(poly.count / maxCount)*255
-            b = int(map[2]*255) # 255 - int( poly.count / maxCount)*255
+            mapColor = cmap(fraction)
+            r = int(mapColor[0]*255) # int(poly.count / maxCount)*255
+            g = int(mapColor[1]*255) # int(poly.count / maxCount)*255
+            b = int(mapColor[2]*255) # 255 - int( poly.count / maxCount)*255
 
             color = (255<<24) + (r<<16) + (g<<8) + b # argb
             colors.append(color)
@@ -220,30 +224,43 @@ def run():
         cloud = [ Pointcloud(points = points, colors = colors )]
 
         print(len(vectors))
-        print(len(lines))
+        print(len(cleanPts))
 
-        visibility = (len(vectors) - len(lines))/len(vectors) * 100
+        visibility = (len(vectors) - len(cleanPts))/len(vectors) * 100
         print(f"Visible sky: {visibility}%")
     
     visibleLines = Collection(elements = lines, units = "m", name = "Context", collectionType = "VisibilityAnalysis")
     visibleObj = Collection(elements = cloud, units = "m", name = "Context", collectionType = "VisibilityAnalysis")
-
+    
     # create branch if needed 
     existing_branch = client.branch.get(project_id, RESULT_BRANCH, 1)  
     if existing_branch is None: 
         br_id = client.branch.create(stream_id = project_id, name = RESULT_BRANCH, description = "") 
-
-    #commitObj.elements.append(bldObj)
-    if onlyIllustrate is True: commitObj.elements.append(visibleLines)
-    else: commitObj.elements.append(visibleObj)
+    
+    #commitObj.elements.append(visibleLines)
+    commitObj.elements.append(visibleObj)
 
     objId = send(commitObj, transports=[server_transport]) 
     commit_id = client.commit.create(
                 stream_id=project_id,
                 object_id=objId,
                 branch_name=RESULT_BRANCH,
-                message="Automate",
+                message="Automate Pointcloud",
                 source_application="Python",
             )
     
-run() 
+    commitObj2 = Collection(elements = cloud, units = "m", name = "Context", collectionType = "Buildings")
+    commitObj2.elements.append(bldObj)
+    
+    r'''
+    objId2 = send(commitObj2, transports=[server_transport]) 
+    commit_id = client.commit.create(
+                stream_id=project_id,
+                object_id=objId2,
+                branch_name=RESULT_BRANCH,
+                message="Buildings",
+                source_application="Python",
+            )
+    '''
+
+run(client, server_transport) 

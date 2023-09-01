@@ -11,6 +11,23 @@ COLOR_ROAD = (255<<24) + (50<<16) + (50<<8) + 50 # argb
 COLOR_BLD = (255<<24) + (200<<16) + (200<<8) + 200 # argb
 COLOR_VISIBILITY = (255<<24) + (255<<16) + (10<<8) + 10 # argb
 
+def findMeshesNearby(cleanPts: List[Point]) -> List[Point]:
+    # add indices of neighbouring meshes
+    mesh_nearby = []
+    for pt in cleanPts:
+        meshIds = []
+        all_mesh_dist = []
+        all_mesh_ids = []
+        for p in cleanPts:
+            distance = np.sqrt(np.sum(( np.array([p.x,p.y,p.z]) -np.array([pt.x,pt.y,pt.z]))**2, axis=0))
+            if distance ==0: continue
+            all_mesh_dist.append(distance)
+            all_mesh_ids.append(p.meshId)
+        minDist = min(all_mesh_dist)
+        meshIds = [ m for i,m in enumerate(all_mesh_ids) if all_mesh_dist[i] < minDist*2 ]
+        mesh_nearby.append(list(set(meshIds)))
+    return mesh_nearby
+
 def sortPtsByMesh(cleanPts: List[Point]) -> List[Point]:
     ptsGroups: List[List[np.array]] = []
     
