@@ -11,7 +11,7 @@ from utils.vectors import createPlane, normalize
 from utils.convex_shape import remapPt
 from shapely.geometry import Point
 from shapely.geometry.polygon import Polygon
-from scipy_replacement import expm
+from utils.scipy_replacement import expm
 
 def getAllPlanes(mesh: Mesh) -> List[list]:
     meshList = []
