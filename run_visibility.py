@@ -24,7 +24,6 @@ def run(client, server_transport, keyword):
 
     project_id = server_transport.stream_id
 
-    r'''
     comments = get_comments(
         client,
         project_id,
@@ -32,7 +31,6 @@ def run(client, server_transport, keyword):
     pt_origin = None
     dir = None
     commitId = None
-    
     for item in comments["comments"]["items"]:
         if keyword.lower() in item["rawText"].lower():
 
@@ -56,6 +54,7 @@ def run(client, server_transport, keyword):
     cloud = []
     dir = np.array(dir)
     start = Point.from_list(pt_origin)
+    r'''
     vectors = rotate_vector(pt_origin, dir, HALF_VIEW_DEGREES, STEP_DEGREES)
     #endPt = list( map(add,pt_origin,dir) )
 
