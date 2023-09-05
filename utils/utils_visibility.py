@@ -7,7 +7,7 @@ from numpy import cross, eye, dot
 from operator import add, sub
 from specklepy.objects.geometry import Mesh, Point
 from utils.vectors import createPlane, normalize 
-
+from utils.convex_shape import remapPt
 
 def getAllPlanes(mesh: Mesh) -> List[list]:
     meshList = []
@@ -41,7 +41,7 @@ def LinePlaneCollision(planeNormal, planePoint, rayDirection, rayPoint, epsilon=
     return Psi
 
 def containsPoint(pt: np.array, mesh: List):
-    from utils.convex_shape import remapPt
+    
     from shapely.geometry import Point
     from shapely.geometry.polygon import Polygon
 

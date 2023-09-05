@@ -1,56 +1,14 @@
 
 
-from typing import List, Union
-
+from typing import Union
 import numpy as np
 
-from specklepy.objects.geometry import Pointcloud
-
-from utils.utils_other import COLOR_VISIBILITY
-from utils.vectors import createPlane, normalize 
-
-def concave_hull_create(coords: List[np.array]):  # coords is a 2D numpy array
-
-    from shapely import to_geojson, convex_hull, buffer, concave_hull, MultiPoint, Polygon
-
-
-    r'''
-    vertices = []
-    colors = []
-    if len(coords) < 4: return None
-    else:
-        plane3d = createPlane(*coords[:3])
-        vertices2d = [ remapPt(p, True, plane3d) for p in coords ]
-
-        z = vertices2d[0][2]
-
-        hull1 = convex_hull(MultiPoint([(pt[0], pt[1], pt[2]) for pt in vertices2d]) )#, ratio=0.1)
-        width = math.sqrt(hull1.area) / 10
-        
-        hull = buffer(hull1, width, join_style="mitre")
-        area = to_geojson(hull) # POLYGON to geojson 
-        area = json.loads(area)
-        if len(area["coordinates"]) > 1: return None
-        new_coords = area["coordinates"][0]
-    
-    for i,c in enumerate(new_coords):
-        if i != len(new_coords)-1:
-            vert2d = c + [z] 
-            vert3d = remapPt(vert2d, False, plane3d)
-
-            if vert3d is not None:
-                vertices.extend(vert3d)
-            colors.append(COLOR_VISIBILITY)
-    '''
-    vert = [c.flatten() for c in coords]
-    flat_list = [num for sublist in vert for num in sublist]
-    mesh = Pointcloud(points=flat_list, colors = [COLOR_VISIBILITY for x in range(len(coords))] )
-    return mesh
+from utils.vectors import normalize 
 
 def remapPt( pt: Union[np.array, list], toHorizontal, plane3d ):
-    pt3d = None
+
     normal3D = np.array( normalize(plane3d["normal"]) )
-    origin3D = np.array(plane3d["origin"])
+    #origin3D = np.array(plane3d["origin"])
 
     if toHorizontal is True: # already 3d 
         n1 = list(normal3D)
@@ -66,10 +24,6 @@ def remapPt( pt: Union[np.array, list], toHorizontal, plane3d ):
         return pt
 
     result = vec1_rot
-    #if toHorizontal is False:
-    #    result = np.add( origin3D, vec1_rot)
-    #else: result = vec1_rot
-
     return result
 
 
