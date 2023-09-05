@@ -131,7 +131,7 @@ def run(client, server_transport, keyword):
         print(f"Visible sky: {visibility * 100}%")      
 
         cloud = [ Pointcloud(points = points, colors = colors, visibility = visibility )]
-    '''
+    
 
     
     if onlyIllustrate is True:
@@ -152,7 +152,7 @@ def run(client, server_transport, keyword):
                 message="Automate Pointcloud",
                 source_application="Python",
             )
-
+    '''
 
 #KEYWORD = "window"
 #server_url = "https://latest.speckle.dev/" #"https://speckle.xyz/" # project_data.speckle_server_url
