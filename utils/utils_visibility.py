@@ -8,6 +8,8 @@ from operator import add, sub
 from specklepy.objects.geometry import Mesh, Point
 from utils.vectors import createPlane, normalize 
 from utils.convex_shape import remapPt
+from shapely.geometry import Point
+from shapely.geometry.polygon import Polygon
 
 def getAllPlanes(mesh: Mesh) -> List[list]:
     meshList = []
@@ -42,9 +44,6 @@ def LinePlaneCollision(planeNormal, planePoint, rayDirection, rayPoint, epsilon=
 
 def containsPoint(pt: np.array, mesh: List):
     
-    from shapely.geometry import Point
-    from shapely.geometry.polygon import Polygon
-
     plane3d = createPlane(*mesh[:3])
     vert2d = remapPt(pt, True, plane3d)
     mesh2d = [ remapPt(m, True, plane3d) for m in mesh ]
