@@ -62,7 +62,7 @@ def remapPt( pt: Union[np.array, list], toHorizontal, plane3d ):
     mat = rotation_matrix_from_vectors(n1, n2)
     vec1_rot = mat.dot(pt)
 
-    if np.isnan(vec1_rot[0]):
+    if np. isnan(vec1_rot[0]):
         return pt
 
     result = vec1_rot
