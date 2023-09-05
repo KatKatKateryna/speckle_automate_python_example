@@ -10,6 +10,7 @@ from utils.vectors import createPlane, normalize
 from utils.convex_shape import remapPt
 from shapely.geometry import Point
 from shapely.geometry.polygon import Polygon
+from scipy_replacement import expm, norm
 
 def getAllPlanes(mesh: Mesh) -> List[list]:
     meshList = []
@@ -56,7 +57,7 @@ def containsPoint(pt: np.array, mesh: List):
 
 def M(axis, theta):
     # https://stackoverflow.com/questions/6802577/rotation-of-3d-vector
-    from scipy_replacement import expm, norm
+    
     return expm(cross(eye(3), axis/norm(axis)*theta))
 
 def rotate_vector(pt_origin, vector, half_angle_degrees=70, step = 10):
