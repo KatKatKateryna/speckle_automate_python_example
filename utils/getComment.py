@@ -9,9 +9,9 @@ def get_comments(
 ) -> Dict[str, Any]:
     return client.httpclient.execute(
         gql("""
-            query c{
-            comments(streamId:"17b0b76d13")
-                {
+            query c{ """+ 
+            f'comments(streamId:"{project_id}")'+
+                """{
                     items {
                     id
                     rawText

@@ -55,7 +55,7 @@ import numpy as np
 from operator import add, sub 
 import matplotlib as mpl
 
-from flatten import flatten_base
+from flatten import flatten_base, iterateBase
 from utils.convex_shape import concave_hull_create, remapPt
 from utils.getComment import get_comments
 #from utils.utils_network import calculateAccessibility
@@ -77,9 +77,9 @@ res = containsPoint(np.array(pt), mesh)
 exit()
 '''
 
-server_url = "https://speckle.xyz/" # project_data.speckle_server_url
-project_id = "17b0b76d13" #project_data.project_id
-model_id = "revit tests"
+server_url = "https://latest.speckle.dev/" #"https://speckle.xyz/" # project_data.speckle_server_url
+project_id = "4ea6a03993" #"17b0b76d13" #project_data.project_id
+model_id = "main"
 version_id = "5d720c0998" #project_data.version_id
 RADIUS = 50 #float(project_data.radius) 
 KEYWORD = "rays"
@@ -87,12 +87,12 @@ HALF_VIEW_DEGREES = 30
 STEP_DEGREES = 5
 #model_id = #project_data.model_id
 
-account = get_local_accounts()[2]
+account = get_local_accounts()[0]
 client = SpeckleClient(server_url)
 client.authenticate_with_token(account.token)
-branch: Branch = client.branch.get(project_id, model_id, 1)
+#branch: Branch = client.branch.get(project_id, model_id, 1)
 
-commit = branch.commits.items[0] 
+#commit = branch.commits.items[0] 
 server_transport = ServerTransport(project_id, client)
 
 
@@ -113,6 +113,8 @@ def run(client, server_transport):
     
     onlyIllustrate = False 
 
+    model_id = "main"
+    #project_id = "4ea6a03993"
     pt_origin = [0, 0, 50]
     dir = [1,-1,-0.5]
 
@@ -120,37 +122,33 @@ def run(client, server_transport):
         client,
         project_id,
     )
-    pos = None
+    pt_origin = None
+    commitId = None
     for item in comments["comments"]["items"]:
         if KEYWORD.lower() in item["rawText"].lower():
+            #viewerResources = item["viewerResources"]
             viewerState = item["viewerState"]
+            commitId = viewerState["resources"]["request"]["resourceIdString"].split("@")[1]
             pt_origin: List[float] = viewerState["ui"]["selection"]
 
             pos: List[float] = viewerState["ui"]["camera"]["position"]
             target: List[float] = viewerState["ui"]["camera"]["target"]
+            pt_origin = target
             dir = list( map(sub, pos, target) )
             break 
-    if pos is None: return 
-    #projInfo = base["info"] #[o for o in objects if o.speckle_type.endswith("Revit.ProjectInfo")][0] 
-    #angle_rad = projInfo["locations"][0]["trueNorth"]
-    #angle_deg = np.rad2deg(angle_rad)
-    #lon = np.rad2deg(projInfo["longitude"])
-    #lat = np.rad2deg(projInfo["latitude"])
+    if pt_origin is None or commitId is None: 
+        return 
 
-    lat = 42.35866165161133
-    lon = -71.0567398071289
-
-    crsObj = None
-    commitObj = Collection(elements = [], units = "m", name = "Context", collectionType = "VilibilityLayer")
-    blds = getBuildings(lat, lon, RADIUS)
-    bases = [Base(units = "m", displayValue = [b]) for b in blds]
-    bldObj = Collection(elements = bases, units = "m", name = "Context", collectionType = "BuildingsLayer")
+    commit = client.commit.get(project_id, commitId)
+    base = receive(commit.referencedObject, server_transport)
+    objects = [b for b in iterateBase(base)]
 
     lines = []
     cloud = []
-    dir = [ int(i*1) for i in dir]
+    dir = np.array(dir)
     start = Point.from_list(pt_origin)
     vectors = rotate_vector(pt_origin, dir, HALF_VIEW_DEGREES, STEP_DEGREES)
+    endPt = list( map(add,pt_origin,dir) )
 
     # just to find the line
     if onlyIllustrate is True:
@@ -168,7 +166,7 @@ def run(client, server_transport):
         all_pts = []
         count = 0
         all_geom = []
-        for bld in blds:
+        for bld in objects:
             # get all intersection points 
             meshes = getAllPlanes(bld)
             for mesh in meshes:
@@ -220,7 +218,7 @@ def run(client, server_transport):
 
             color = (255<<24) + (r<<16) + (g<<8) + b # argb
             colors.append(color)
-                    
+        if len(points)==0 or len(colors)==0: return             
         cloud = [ Pointcloud(points = points, colors = colors )]
 
         print(len(vectors))
@@ -229,18 +227,17 @@ def run(client, server_transport):
         visibility = (len(vectors) - len(cleanPts))/len(vectors) * 100
         print(f"Visible sky: {visibility}%")
     
-    visibleLines = Collection(elements = lines, units = "m", name = "Context", collectionType = "VisibilityAnalysis")
-    visibleObj = Collection(elements = cloud, units = "m", name = "Context", collectionType = "VisibilityAnalysis")
+    if onlyIllustrate is True:
+        visibleObj = Collection(elements = lines, units = "m", name = "Context", collectionType = "VisibilityAnalysis")
+    else:
+        visibleObj = Collection(elements = cloud, units = "m", name = "Context", collectionType = "VisibilityAnalysis")
     
     # create branch if needed 
     existing_branch = client.branch.get(project_id, RESULT_BRANCH, 1)  
     if existing_branch is None: 
         br_id = client.branch.create(stream_id = project_id, name = RESULT_BRANCH, description = "") 
-    
-    #commitObj.elements.append(visibleLines)
-    commitObj.elements.append(visibleObj)
 
-    objId = send(commitObj, transports=[server_transport]) 
+    objId = send(visibleObj, transports=[server_transport]) 
     commit_id = client.commit.create(
                 stream_id=project_id,
                 object_id=objId,
@@ -248,19 +245,5 @@ def run(client, server_transport):
                 message="Automate Pointcloud",
                 source_application="Python",
             )
-    
-    commitObj2 = Collection(elements = cloud, units = "m", name = "Context", collectionType = "Buildings")
-    commitObj2.elements.append(bldObj)
-    
-    r'''
-    objId2 = send(commitObj2, transports=[server_transport]) 
-    commit_id = client.commit.create(
-                stream_id=project_id,
-                object_id=objId2,
-                branch_name=RESULT_BRANCH,
-                message="Buildings",
-                source_application="Python",
-            )
-    '''
 
 run(client, server_transport) 

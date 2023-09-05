@@ -80,7 +80,7 @@ def rotate_vector(pt_origin, vector, half_angle_degrees=70, step = 10):
 
     return vectors
 
-def getAllPlanes(mesh: Mesh):
+def getAllPlanes(mesh: Mesh) -> List[list]:
     meshList = []
 
     i = 0
@@ -121,8 +121,15 @@ def projectToPolygon(point: List[float], vectors: List[List[float]], usedVectors
         normalOriginal = normalize( dir )
         collision = LinePlaneCollision(planeNormal, planePoint, dir, rayPoint)
         if collision is None: continue 
-        normalCollision = normalize( np.array(collision)-rayPoint )
-        if int(normalCollision[0]*1000) != int(normalOriginal[0]*1000): continue # if different direction 
+        normC = normalize( collision-rayPoint )
+        #if int(normalCollision[0]*1000) != int(normalOriginal[0]*1000): 
+        compare1 = normalOriginal[0]*normC[0]
+        compare2 = normalOriginal[1]*normC[1]
+        compare3 = normalOriginal[2]*normC[2]
+        if (compare1>=0 and compare2>=0 and compare3>=0): # or (compare1<0 and compare2<0 and compare3<0) : 
+            pass 
+        else:
+            continue # if different direction 
 
         result = containsPoint(collision, m)
 
