@@ -4,13 +4,14 @@ import random
 from typing import List
 import numpy as np
 from numpy import cross, eye, dot
+from numpy.linalg import norm
 from operator import add, sub
 from specklepy.objects.geometry import Mesh, Point
 from utils.vectors import createPlane, normalize 
 from utils.convex_shape import remapPt
 from shapely.geometry import Point
 from shapely.geometry.polygon import Polygon
-from scipy_replacement import expm, norm
+from scipy_replacement import expm
 
 def getAllPlanes(mesh: Mesh) -> List[list]:
     meshList = []
