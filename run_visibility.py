@@ -12,8 +12,8 @@ import matplotlib as mpl
 from flatten import iterateBase
 from utils.getComment import get_comments
 
-from utils.utils_other import RESULT_BRANCH#, cleanPtsList, findMeshesNearby, sortPtsByMesh
-from utils.utils_visibility import getAllPlanes, projectToPolygon, rotate_vector#, expandPtsList
+from utils.utils_other import RESULT_BRANCH, cleanPtsList, findMeshesNearby, sortPtsByMesh
+from utils.utils_visibility import getAllPlanes, projectToPolygon, rotate_vector, expandPtsList
 
 HALF_VIEW_DEGREES = 70
 STEP_DEGREES = 5
@@ -81,7 +81,7 @@ def run(client, server_transport, keyword):
                 pts, usedVectors = projectToPolygon(pt_origin, vectors, usedVectors, mesh, count) #Mesh.create(vertices = [0,0,0,5,0,0,5,19,0,0,14,0], faces=[4,0,1,2,3]))
                 all_pts.extend(pts)
                 count +=1
-        r'''
+
         cleanPts = cleanPtsList(pt_origin, all_pts, usedVectors)
         mesh_nearby = findMeshesNearby(cleanPts)
 
@@ -129,7 +129,6 @@ def run(client, server_transport, keyword):
         print(f"Visible sky: {visibility * 100}%")      
 
         cloud = [ Pointcloud(points = points, colors = colors, visibility = visibility )]
-        '''
 
     
     if onlyIllustrate is True:
