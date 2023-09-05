@@ -1,14 +1,12 @@
 import typer
 from pydantic import BaseModel, ConfigDict
 from stringcase import camelcase
-from specklepy.transports.memory import MemoryTransport
 from specklepy.transports.server import ServerTransport
 from specklepy.api.operations import receive
 from specklepy.api.client import SpeckleClient
-import random
+from specklepy.api.models import Branch
 
-from flatten import flatten_base
-from make_comment import make_comment
+from run_context import run as run_context
 
 
 class SpeckleProjectData(BaseModel):
@@ -27,7 +25,8 @@ class FunctionInputs(BaseModel):
     These are function author defined values, automate will make sure to supply them.
     """
 
-    comment_text: str
+    radius_in_meters: str
+    keyword: str
 
     class Config:
         alias_generator = camelcase
@@ -42,32 +41,13 @@ def main(speckle_project_data: str, function_inputs: str, speckle_token: str):
 
     client = SpeckleClient(project_data.speckle_server_url, use_ssl=False)
     client.authenticate_with_token(speckle_token)
-    commit = client.commit.get(project_data.project_id, project_data.version_id)
-    branch = client.branch.get(project_data.project_id, project_data.model_id, 1)
+    branch: Branch = client.branch.get(project_data.project_id, project_data.model_id, 1)
 
-    memory_transport = MemoryTransport()
     server_transport = ServerTransport(project_data.project_id, client)
-    base = receive(commit.referencedObject, server_transport, memory_transport)
+    base = receive(branch.commits.items[0].referencedObject, server_transport)
 
-    objects = [b for b in flatten_base(base)]
-    try:
-        projInfo = [o for o in objects if o.speckle_type.endswith("Revit.ProjectInfo")][0] 
-        angle_rad = projInfo["locations"][0]["trueNorth"]
-        lon = projInfo["longitude"]
-        lat = projInfo["latitude"]
-    except: pass
+    run_context(client, server_transport, base, inputs.radius_in_meters)
     
-    random_beam = random.choice( objects )
-
-    make_comment(
-        client,
-        project_data.project_id,
-        branch.id,
-        project_data.version_id,
-        inputs.comment_text,
-        random_beam.id,
-    )
-
     print(
         "Ran function with",
         f"{speckle_project_data} {function_inputs}",
