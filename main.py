@@ -7,7 +7,7 @@ from specklepy.api.client import SpeckleClient
 from specklepy.api.models import Branch
 
 from run_context import run as run_context
-from run_analysis import run as run_analysis
+#from run_analysis import run as run_analysis
 
 
 class SpeckleProjectData(BaseModel):
@@ -48,7 +48,7 @@ def main(speckle_project_data: str, function_inputs: str, speckle_token: str):
     base = receive(branch.commits.items[0].referencedObject, server_transport)
 
     run_context(client, server_transport, base, inputs.radius_in_meters)
-    run_analysis(client, server_transport, inputs.keyword)
+    #run_analysis(client, server_transport, inputs.keyword)
     
     print(
         "Ran function with",
