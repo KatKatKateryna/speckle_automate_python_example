@@ -9,6 +9,9 @@ import numpy as np
 from operator import add, sub 
 import matplotlib as mpl
 
+from flatten import iterateBase
+from utils.getComment import get_comments
+
 from utils.utils_other import RESULT_BRANCH
 
 HALF_VIEW_DEGREES = 70
