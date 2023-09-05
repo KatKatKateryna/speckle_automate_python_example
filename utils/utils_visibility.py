@@ -2,17 +2,34 @@
 import math
 import random
 from typing import List
-#from scipy.linalg import expm, norm
-from scipy_replacement import expm, norm
-
 import numpy as np
 from numpy import cross, eye, dot
 from operator import add, sub
 from specklepy.objects.geometry import Mesh, Point
 
-from utils.vectors import createPlane, normalize 
 
-
+def getAllPlanes(mesh: Mesh) -> List[list]:
+    meshList = []
+    if isinstance(mesh, Mesh):
+        i = 0
+        fs = mesh.faces
+        for count, f in enumerate(fs):
+            if i >= len(fs)-1: break
+            current_face_index = fs[i]
+            pt_list = []
+            for x in range(i+1, i+fs[i]+1):
+                ind = int(fs[x])
+                pt_list.append( [mesh.vertices[3*ind], mesh.vertices[3*ind+1], mesh.vertices[3*ind+2]] )
+            #pt1 = [mesh.vertices[3*fs[i+1]], mesh.vertices[3*fs[i+1]+1], mesh.vertices[3*fs[i+1]+2]]
+            #pt2 = [mesh.vertices[3*fs[i+2]], mesh.vertices[3*fs[i+2]+1], mesh.vertices[3*fs[i+2]+2]]
+            #pt3 = [mesh.vertices[3*fs[i+3]], mesh.vertices[3*fs[i+3]+1], mesh.vertices[3*fs[i+3]+2]]
+            meshList.append(pt_list)
+            i += fs[i] + 1 
+    elif isinstance(mesh, List):
+        for m in mesh:
+            meshList.extend(getAllPlanes(m))
+    return meshList
+    
 def LinePlaneCollision(planeNormal, planePoint, rayDirection, rayPoint, epsilon=1e-6):
     # https://gist.github.com/TimSC/8c25ca941d614bf48ebba6b473747d72
     ndotu = planeNormal.dot(rayDirection)
@@ -27,6 +44,7 @@ def LinePlaneCollision(planeNormal, planePoint, rayDirection, rayPoint, epsilon=
 
 def containsPoint(pt: np.array, mesh: List):
     from utils.convex_shape import remapPt
+    from utils.vectors import createPlane
     from shapely.geometry import Point
     from shapely.geometry.polygon import Polygon
 
@@ -42,6 +60,7 @@ def containsPoint(pt: np.array, mesh: List):
 
 def M(axis, theta):
     # https://stackoverflow.com/questions/6802577/rotation-of-3d-vector
+    from scipy_replacement import expm, norm
     return expm(cross(eye(3), axis/norm(axis)*theta))
 
 def rotate_vector(pt_origin, vector, half_angle_degrees=70, step = 10):
@@ -75,29 +94,8 @@ def rotate_vector(pt_origin, vector, half_angle_degrees=70, step = 10):
 
     return vectors
 
-def getAllPlanes(mesh: Mesh) -> List[list]:
-    meshList = []
-    if isinstance(mesh, Mesh):
-        i = 0
-        fs = mesh.faces
-        for count, f in enumerate(fs):
-            if i >= len(fs)-1: break
-            current_face_index = fs[i]
-            pt_list = []
-            for x in range(i+1, i+fs[i]+1):
-                ind = int(fs[x])
-                pt_list.append( [mesh.vertices[3*ind], mesh.vertices[3*ind+1], mesh.vertices[3*ind+2]] )
-            #pt1 = [mesh.vertices[3*fs[i+1]], mesh.vertices[3*fs[i+1]+1], mesh.vertices[3*fs[i+1]+2]]
-            #pt2 = [mesh.vertices[3*fs[i+2]], mesh.vertices[3*fs[i+2]+1], mesh.vertices[3*fs[i+2]+2]]
-            #pt3 = [mesh.vertices[3*fs[i+3]], mesh.vertices[3*fs[i+3]+1], mesh.vertices[3*fs[i+3]+2]]
-            meshList.append(pt_list)
-            i += fs[i] + 1 
-    elif isinstance(mesh, List):
-        for m in mesh:
-            meshList.extend(getAllPlanes(m))
-    return meshList
-    
 def projectToPolygon(point: List[float], vectors: List[List[float]], usedVectors: dict, m, index):
+    from utils.vectors import createPlane, normalize 
     allIntersections = []
 
     #meshes = getAllPlanes(mesh)
