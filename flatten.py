@@ -14,6 +14,8 @@ def iterateBase(base: Base) -> Iterable[Base]:
     if isinstance(base, Base):
         for name in base.get_member_names():
             try:
+                if name.endswith("definition") or name == "units" or name == "speckle_type":
+                    continue
                 if isinstance(base[name], Mesh): 
                     meshes.append(meshes)
                 elif isinstance(base[name], List) and isinstance(base[name][0], Mesh): 

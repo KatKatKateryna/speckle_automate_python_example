@@ -78,11 +78,11 @@ exit()
 '''
 
 server_url = "https://latest.speckle.dev/" #"https://speckle.xyz/" # project_data.speckle_server_url
-project_id = "4ea6a03993" #"17b0b76d13" #project_data.project_id
-model_id = "main"
-version_id = "5d720c0998" #project_data.version_id
+project_id = "04a609b47c" #"4ea6a03993"# Kate's tests #"17b0b76d13" #project_data.project_id
+#model_id = "main"
+#version_id = "5d720c0998" #project_data.version_id
 RADIUS = 50 #float(project_data.radius) 
-KEYWORD = "rays"
+KEYWORD = "window"
 HALF_VIEW_DEGREES = 30
 STEP_DEGREES = 5
 #model_id = #project_data.model_id
@@ -113,8 +113,8 @@ def run(client, server_transport):
     
     onlyIllustrate = False 
 
-    model_id = "main"
-    #project_id = "4ea6a03993"
+    #model_id = "main"
+    project_id = server_transport.stream_id
     pt_origin = [0, 0, 50]
     dir = [1,-1,-0.5]
 
@@ -178,17 +178,17 @@ def run(client, server_transport):
         cleanPts = cleanPtsList(pt_origin, all_pts, usedVectors)
         mesh_nearby = findMeshesNearby(cleanPts)
 
-        ### expand number of pts around filtere rays 
+        ### expand number of pts around filtered rays 
         expandedPts2 = []
         expandedPts2, usedVectors2 = expandPtsList(pt_origin, cleanPts, {}, STEP_DEGREES, all_geom, mesh_nearby)
 
-        ### expand number of pts around filtere rays 
+        ### expand number of pts around filtered rays 
         expandedPts3 = []
         clean_extended_pts = cleanPts + expandedPts2
         mesh_nearby = findMeshesNearby(clean_extended_pts)
         expandedPts3, usedVectors3 = expandPtsList(pt_origin, clean_extended_pts, {}, STEP_DEGREES/2.5, all_geom, mesh_nearby)
         
-        ### expand number of pts around filtere rays 
+        ### expand number of pts around filtered rays 
         expandedPts4 = []
         clean_extended_pts = clean_extended_pts + expandedPts3
         mesh_nearby = findMeshesNearby(clean_extended_pts)
