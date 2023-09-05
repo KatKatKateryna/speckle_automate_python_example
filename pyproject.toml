@@ -16,6 +16,7 @@ numpy = "^1.25.2"
 pyproj = "^3.6.0"
 shapely = "^2.0.1"
 osmnet = "^0.1.7"
+scipy = "1.9.3"
 
 [tool.poetry.group.dev.dependencies]
 black = "^23.3.0"
