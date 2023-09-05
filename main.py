@@ -27,7 +27,6 @@ class FunctionInputs(BaseModel):
     """
 
     radius_in_meters: str
-    keyword: str
 
     class Config:
         alias_generator = camelcase
