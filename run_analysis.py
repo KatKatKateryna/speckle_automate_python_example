@@ -13,7 +13,7 @@ from flatten import iterateBase
 from utils.getComment import get_comments
 
 from utils.utils_other import RESULT_BRANCH, cleanPtsList, findMeshesNearby, sortPtsByMesh
-from utils.utils_visibility import getAllPlanes, projectToPolygon#, rotate_vector, expandPtsList
+from utils.utils_visibility import getAllPlanes#, projectToPolygon, rotate_vector, expandPtsList
 
 HALF_VIEW_DEGREES = 70
 STEP_DEGREES = 5
