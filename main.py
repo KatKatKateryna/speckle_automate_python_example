@@ -10,7 +10,6 @@ import random
 from flatten import flatten_base
 from make_comment import make_comment
 
-import numpy
 
 class SpeckleProjectData(BaseModel):
     """Values of the project / model that triggered the run of this function."""
