@@ -41,6 +41,7 @@ def run(client, server_transport, base, radius_in_meters):
         if existing_branch is None: 
             br_id = client.branch.create(stream_id = project_id, name = RESULT_BRANCH, description = "") 
 
+        commitObj.elements.append(base)
         commitObj.elements.append(bldObj)
         commitObj.elements.append(roadObj)
         commitObj.elements.append(roadMeshObj)
